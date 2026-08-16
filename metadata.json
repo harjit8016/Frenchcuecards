@@ -1,0 +1,6 @@
+{
+  "name": "French Kiu",
+  "description": "Mobile-first French vocabulary flashcard PWA with audio pronunciation and Punjabi translations in Khalsa colors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
