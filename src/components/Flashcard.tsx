@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'motion/react';
-import { Volume2, RotateCw } from 'lucide-react';
+import { Volume2, RotateCw, Bookmark } from 'lucide-react';
 import { VocabularyWord } from '../types';
 import { speakFrench, stopSpeaking } from '../utils/speech';
 import { triggerHaptic } from '../utils/haptics';
@@ -11,6 +11,8 @@ interface FlashcardProps {
   nextCard?: VocabularyWord;
   onSwipe: (direction: 'left' | 'right') => void;
   autoPlayAudio?: boolean;
+  isSaved?: boolean;
+  onToggleSave?: () => void;
 }
 
 export const Flashcard: React.FC<FlashcardProps> = ({
@@ -18,7 +20,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({
   nextCard,
   onSwipe,
   autoPlayAudio = true,
+  isSaved = false,
+  onToggleSave,
 }) => {
+
   const [isFlipped, setIsFlipped] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
@@ -160,9 +165,27 @@ export const Flashcard: React.FC<FlashcardProps> = ({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#FF9933]">
-                <span>ਪਲਟੋ · Flip</span>
-                <RotateCw className="w-3.5 h-3.5 stroke-[2.5]" />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label={isSaved ? 'Remove from saved' : 'Save word'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onToggleSave) onToggleSave();
+                  }}
+                  className={`p-1.5 rounded-lg border transition-all active:scale-90 flex items-center justify-center ${
+                    isSaved
+                      ? 'bg-[#FF9933] border-[#FFD700] text-[#00174D]'
+                      : 'bg-slate-100 border-slate-300 text-slate-400 hover:text-[#002270]'
+                  }`}
+                  title={isSaved ? 'ਸੇਵ ਕੀਤਾ ਹੋਇਆ' : 'ਸੇਵ ਕਰੋ'}
+                >
+                  <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
+                </button>
+                <div className="flex items-center gap-1 text-[11px] font-bold text-[#FF9933]">
+                  <span>ਪਲਟੋ · Flip</span>
+                  <RotateCw className="w-3.5 h-3.5 stroke-[2.5]" />
+                </div>
               </div>
             </div>
 
@@ -212,9 +235,27 @@ export const Flashcard: React.FC<FlashcardProps> = ({
               <span className="text-xs font-black text-[#002270] uppercase tracking-wider">
                 {card.word} <span className="text-slate-500 font-bold">({card.level})</span>
               </span>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-[#FF9933]">
-                <span>ਵਾਪਸ · Flip</span>
-                <RotateCw className="w-3.5 h-3.5 stroke-[2.5]" />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label={isSaved ? 'Remove from saved' : 'Save word'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onToggleSave) onToggleSave();
+                  }}
+                  className={`p-1.5 rounded-lg border transition-all active:scale-90 flex items-center justify-center ${
+                    isSaved
+                      ? 'bg-[#FF9933] border-[#FFD700] text-[#00174D]'
+                      : 'bg-slate-100 border-slate-300 text-slate-400 hover:text-[#002270]'
+                  }`}
+                  title={isSaved ? 'ਸੇਵ ਕੀਤਾ ਹੋਇਆ' : 'ਸੇਵ ਕਰੋ'}
+                >
+                  <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
+                </button>
+                <div className="flex items-center gap-1 text-[11px] font-bold text-[#FF9933]">
+                  <span>ਵਾਪਸ · Flip</span>
+                  <RotateCw className="w-3.5 h-3.5 stroke-[2.5]" />
+                </div>
               </div>
             </div>
 
@@ -247,10 +288,10 @@ export const Flashcard: React.FC<FlashcardProps> = ({
                   </button>
                 </div>
 
-                <p className="text-xs sm:text-sm font-semibold text-[#002270] italic leading-relaxed mb-1 font-brand">
+                <p className="text-sm sm:text-base font-semibold text-[#002270] italic leading-relaxed mb-1.5 font-brand">
                   &ldquo;{card.example_fr}&rdquo;
                 </p>
-                <p className="text-xs sm:text-sm font-medium text-slate-700 font-gurmukhi leading-relaxed border-t border-slate-200 pt-1">
+                <p className="text-sm sm:text-base font-medium text-slate-700 font-gurmukhi leading-relaxed border-t border-slate-200 pt-1.5">
                   {card.example_pa}
                 </p>
               </div>

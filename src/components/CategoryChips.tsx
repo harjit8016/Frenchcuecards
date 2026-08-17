@@ -5,6 +5,7 @@ import { triggerHaptic } from '../utils/haptics';
 interface CategoryChipsProps {
   selectedCategory: WordCategory;
   onSelectCategory: (category: WordCategory) => void;
+  availableCategories?: WordCategory[];
 }
 
 const CATEGORIES: { id: WordCategory; labelPa: string; labelEn: string; icon: string }[] = [
@@ -19,7 +20,17 @@ const CATEGORIES: { id: WordCategory; labelPa: string; labelEn: string; icon: st
 export const CategoryChips: React.FC<CategoryChipsProps> = ({
   selectedCategory,
   onSelectCategory,
+  availableCategories,
 }) => {
+  const displayedCategories = availableCategories
+    ? CATEGORIES.filter((c) => availableCategories.includes(c.id))
+    : CATEGORIES;
+
+  // If only 1 category exists (like only 'all'), no filter is needed so don't clutter the top
+  if (displayedCategories.length <= 1) {
+    return null;
+  }
+
   const handleSelect = (id: WordCategory) => {
     if (id !== selectedCategory) {
       triggerHaptic('selection');
@@ -28,8 +39,8 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
   };
 
   return (
-    <div className="w-full max-w-md mx-auto px-3 py-1.5 overflow-x-auto no-scrollbar flex items-center gap-1.5 bg-[#001438]">
-      {CATEGORIES.map((cat) => {
+    <div className="w-full max-w-md mx-auto px-3 py-1.5 overflow-x-auto no-scrollbar flex items-center gap-1.5 bg-[#001438] transition-all">
+      {displayedCategories.map((cat) => {
         const isSelected = selectedCategory === cat.id;
         return (
           <button

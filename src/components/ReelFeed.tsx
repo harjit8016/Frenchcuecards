@@ -9,7 +9,7 @@ import {
   Sparkles,
   ChevronUp,
   ChevronDown,
-  GraduationCap
+  ArrowRight,
 } from 'lucide-react';
 import { VocabularyWord, CEFRLevel } from '../types';
 import {
@@ -17,10 +17,12 @@ import {
   speakFrench,
   speakPunjabi,
   stopSpeaking,
+  cleanPunjabiSpeechText,
   TeacherStep,
 } from '../utils/speech';
 import { triggerHaptic } from '../utils/haptics';
 import { LottieAudioAnimation } from './LottieAudioAnimation';
+import { getNextLevel } from '../data/vocabulary';
 
 interface ReelFeedProps {
   words: VocabularyWord[];
@@ -28,8 +30,13 @@ interface ReelFeedProps {
   onIndexChange: (index: number) => void;
   selectedLevel: CEFRLevel;
   onSelectLevel: (level: CEFRLevel) => void;
+  onNextLevel?: () => void;
   autoPlayAudio: boolean;
   onToggleAutoPlay?: (enabled?: boolean) => void;
+  savedWordsMap?: Record<string, boolean>;
+  onToggleSaveWord?: (id: string) => void;
+  showSavedOnly?: boolean;
+  onClearSavedFilter?: () => void;
 }
 
 type PlaybackSpeed = 1.0 | 0.75 | 0.5;
@@ -38,8 +45,15 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
   words,
   currentIndex,
   onIndexChange,
+  selectedLevel,
+  onSelectLevel,
+  onNextLevel,
   autoPlayAudio,
   onToggleAutoPlay,
+  savedWordsMap,
+  onToggleSaveWord,
+  showSavedOnly = false,
+  onClearSavedFilter,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState<number>(currentIndex || 0);
@@ -47,7 +61,6 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
   const [speed, setSpeed] = useState<PlaybackSpeed>(0.75);
   const [isNarrating, setIsNarrating] = useState<boolean>(false);
   const [teacherStep, setTeacherStep] = useState<TeacherStep>('idle');
-  const [masteredMap, setMasteredMap] = useState<Record<string, boolean>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Keep refs for asynchronous loop cycle tracking
@@ -60,11 +73,18 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
   const isAutoPlayRef = useRef<boolean>(autoPlayAudio);
   isAutoPlayRef.current = autoPlayAudio;
   const scrollTimeoutRef = useRef<number | null>(null);
+  const interruptTimeoutRef = useRef<number | null>(null);
+  const interruptionIdRef = useRef<number>(0);
   const loopActiveRef = useRef<boolean>(false);
 
   // Run teacher narration loop for a given word index
   const startTeacherLoopForIndex = useCallback(
     async (index: number) => {
+      // Clear pending interrupt resumes
+      if (interruptTimeoutRef.current) {
+        clearTimeout(interruptTimeoutRef.current);
+        interruptTimeoutRef.current = null;
+      }
       stopSpeaking();
       const currentWord = words[index];
       if (!currentWord) return;
@@ -109,7 +129,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
         if (activeIndexRef.current !== index || !isLoopingRef.current || !loopActiveRef.current) break;
       }
 
-      if (activeIndexRef.current === index) {
+      if (activeIndexRef.current === index && loopActiveRef.current) {
         setIsNarrating(false);
         setTeacherStep('idle');
         loopActiveRef.current = false;
@@ -164,6 +184,10 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
 
       if (closestIdx !== activeIndexRef.current && minDistance < containerRect.height * 0.45) {
         // Stop any current utterance immediately
+        if (interruptTimeoutRef.current) {
+          clearTimeout(interruptTimeoutRef.current);
+          interruptTimeoutRef.current = null;
+        }
         loopActiveRef.current = false;
         stopSpeaking();
         setIsNarrating(false);
@@ -197,6 +221,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
     return () => {
       container.removeEventListener('scroll', handleScroll);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      if (interruptTimeoutRef.current) clearTimeout(interruptTimeoutRef.current);
       loopActiveRef.current = false;
       stopSpeaking();
     };
@@ -206,6 +231,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
   const handleToggleNarrator = (index: number, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    if (interruptTimeoutRef.current) clearTimeout(interruptTimeoutRef.current);
 
     triggerHaptic('medium');
 
@@ -238,6 +264,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
 
     // If currently playing, restart immediately at the new French speed
     if (isNarrating) {
+      if (interruptTimeoutRef.current) clearTimeout(interruptTimeoutRef.current);
       loopActiveRef.current = false;
       stopSpeaking();
       startTeacherLoopForIndex(activeIndexRef.current);
@@ -258,14 +285,13 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
     });
   };
 
-  // Toggle Mastered/Learned
+  // Toggle Mastered/Learned/Saved
   const handleToggleMastered = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     triggerHaptic('success');
-    setMasteredMap((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+    if (onToggleSaveWord) {
+      onToggleSaveWord(id);
+    }
   };
 
   // Share / Copy word
@@ -280,53 +306,104 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
     }
   };
 
-  // Touch triggers for individual elements
-  const handleSpeakSingleWord = (word: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    triggerHaptic('light');
-    loopActiveRef.current = false;
-    stopSpeaking();
-    setIsNarrating(false);
-    setTeacherStep('word_fr');
-    speakFrench(word, speedRef.current).then(() => setTeacherStep('idle'));
-  };
-
-  const handleSpeakSingleMeaning = (meaning: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    triggerHaptic('light');
-    loopActiveRef.current = false;
-    stopSpeaking();
-    setIsNarrating(false);
-    setTeacherStep('meaning_pa');
-    speakPunjabi(`ਇਹਦਾ ਮਤਲਬ ਹੁੰਦਾ ਹੈ, ${meaning}`, 1.0).then(() =>
-      setTeacherStep('idle')
-    );
-  };
-
-  const handleSpeakSingleSentence = (
-    sentenceFr: string,
-    sentencePa: string,
+  // User Section Tap Interruption:
+  // 1. Immediately interrupts current speaker utterance
+  // 2. Speaks the clicked section with highlighted visual step
+  // 3. Waits half a second (500ms) after speech finishes
+  // 4. If audio is still unmuted, automatically resumes full teacher loop
+  const handleSectionClick = async (
+    section: 'word_fr' | 'meaning_pa' | 'example',
+    word: VocabularyWord,
+    cardIndex: number,
     e: React.MouseEvent
   ) => {
     e.stopPropagation();
     triggerHaptic('light');
+
+    // Clear any pending timeouts
+    if (interruptTimeoutRef.current) {
+      clearTimeout(interruptTimeoutRef.current);
+      interruptTimeoutRef.current = null;
+    }
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = null;
+    }
+
+    // Stop currently playing loop or utterance immediately
     loopActiveRef.current = false;
     stopSpeaking();
-    setIsNarrating(false);
-    setTeacherStep('example_fr');
-    speakFrench(sentenceFr, speedRef.current).then(async () => {
-      setTeacherStep('example_pa');
-      await speakPunjabi(`ਮਤਲਬ, ${sentencePa}`, 1.0);
+
+    const interruptionId = ++interruptionIdRef.current;
+    setIsNarrating(true);
+
+    if (section === 'word_fr') {
+      setTeacherStep('word_fr');
+      await speakFrench(word.word, speedRef.current);
+    } else if (section === 'meaning_pa') {
+      setTeacherStep('meaning_pa');
+      const cleanMeaning = cleanPunjabiSpeechText(word.meaning_pa);
+      await speakPunjabi(`ਇਹਦਾ ਮਤਲਬ ਹੁੰਦਾ ਹੈ, ${cleanMeaning}`, 1.0);
+    } else if (section === 'example') {
+      setTeacherStep('example_fr');
+      await speakFrench(word.example_fr, speedRef.current);
+      if (
+        interruptionId === interruptionIdRef.current &&
+        activeIndexRef.current === cardIndex
+      ) {
+        setTeacherStep('example_pa');
+        const cleanEx = cleanPunjabiSpeechText(word.example_pa);
+        await speakPunjabi(`ਮਤਲਬ, ${cleanEx}`, 1.0);
+      }
+    }
+
+    // If still on the same card and no newer interruption took over
+    if (
+      interruptionId === interruptionIdRef.current &&
+      activeIndexRef.current === cardIndex
+    ) {
       setTeacherStep('idle');
-    });
+
+      // Half-second (500ms) pause before auto-restarting the speaker if unmuted
+      if (isAutoPlayRef.current) {
+        interruptTimeoutRef.current = window.setTimeout(() => {
+          if (
+            interruptionId === interruptionIdRef.current &&
+            activeIndexRef.current === cardIndex &&
+            isAutoPlayRef.current
+          ) {
+            startTeacherLoopForIndex(cardIndex);
+          }
+        }, 500);
+      } else {
+        setIsNarrating(false);
+      }
+    }
   };
 
   if (words.length === 0) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-white bg-[#001438]">
-        <p className="text-base font-bold font-gurmukhi text-[#FFD700]">
-          ਇਸ ਕੈਟੇਗਰੀ ਵਿੱਚ ਕੋਈ ਸ਼ਬਦ ਨਹੀਂ ਮਿਲਿਆ।
+      <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-white bg-[#001438] max-w-sm mx-auto">
+        <div className="w-14 h-14 rounded-full bg-[#FF9933]/20 border-2 border-[#FFD700] flex items-center justify-center mb-3">
+          <Bookmark className="w-7 h-7 text-[#FF9933] stroke-[2.5]" />
+        </div>
+        <h3 className="text-lg font-black text-white font-brand mb-1">
+          {showSavedOnly ? 'ਕੋਈ ਸੇਵ ਕੀਤਾ ਸ਼ਬਦ ਨਹੀਂ' : 'ਇਸ ਕੈਟੇਗਰੀ ਵਿੱਚ ਕੋਈ ਸ਼ਬਦ ਨਹੀਂ'}
+        </h3>
+        <p className="text-xs text-slate-300 font-gurmukhi leading-relaxed mb-4">
+          {showSavedOnly
+            ? 'ਕਿਸੇ ਵੀ ਕਾਰਡ ਦੇ 🔖 "ਸੇਵ" ਬਟਨ \'ਤੇ ਕਲਿੱਕ ਕਰਕੇ ਸ਼ਬਦਾਂ ਨੂੰ ਇੱਥੇ ਸੇਵ ਕਰੋ।'
+            : 'ਕਿਰਪਾ ਕਰਕੇ ਕੋਈ ਹੋਰ ਕੈਟੇਗਰੀ ਜਾਂ ਪੱਧਰ ਚੁਣੋ।'}
         </p>
+        {showSavedOnly && onClearSavedFilter && (
+          <button
+            type="button"
+            onClick={onClearSavedFilter}
+            className="px-4 py-2 rounded-xl bg-[#FF9933] text-[#00174D] font-black text-xs hover:bg-[#FFD700] transition-colors border border-[#FFD700] active:scale-95 shadow"
+          >
+            ਸਾਰੇ ਸ਼ਬਦ ਦੇਖੋ (Browse All Words)
+          </button>
+        )}
       </div>
     );
   }
@@ -337,7 +414,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
       className="relative w-full h-full max-w-md mx-auto overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-[#001438] border-x border-[#0033A0] shadow-2xl overscroll-contain touch-pan-y"
     >
       {words.map((word, index) => {
-        const isMastered = !!masteredMap[word.id];
+        const isMastered = savedWordsMap ? Boolean(savedWordsMap[word.id]) : false;
         const isActive = activeIndex === index;
         const currentStep = isActive ? teacherStep : 'idle';
 
@@ -363,35 +440,34 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                   )}
                 </div>
 
-                {/* Progress pill + Lottie Live Audio Badge */}
+                {/* Progress counter */}
                 <div className="flex items-center gap-2">
-                  {isActive && isNarrating && (
-                    <div className="flex items-center gap-1 text-[10px] font-black text-[#00174D] bg-[#FF9933] px-2 py-0.5 rounded-lg border border-[#FFD700]">
-                      <GraduationCap className="w-3 h-3 text-[#00174D] stroke-[2.5]" />
-                      <span>ਬੋਲ ਰਿਹਾ ਹੈ</span>
-                      <LottieAudioAnimation isPlaying={true} width={28} height={14} />
-                    </div>
-                  )}
                   <span className="text-xs font-black text-slate-500 font-mono">
                     {index + 1} / {words.length}
                   </span>
                 </div>
               </div>
 
-              {/* MAIN CONTENT STAGE (BIGGER FONTS & INSTANT VISIBILITY) */}
+              {/* MAIN CONTENT STAGE (CLICKABLE SECTIONS WITH AUTO-INTERRUPTION & 500MS RESUME) */}
               <div className="my-auto flex flex-col justify-center space-y-2.5 sm:space-y-3 py-1 w-full pr-14 sm:pr-16">
                 {/* 1. French Word Section */}
                 <div
-                  onClick={(e) => handleSpeakSingleWord(word.word, e)}
-                  className={`p-2.5 sm:p-3 rounded-2xl transition-colors cursor-pointer border ${
+                  onClick={(e) => handleSectionClick('word_fr', word, index, e)}
+                  title="ਕਲਿੱਕ ਕਰਕੇ ਫ੍ਰੈਂਚ ਸ਼ਬਦ ਸੁਣੋ"
+                  className={`p-2.5 sm:p-3 rounded-2xl transition-all cursor-pointer border active:scale-[0.99] ${
                     currentStep === 'word_fr'
-                      ? 'bg-[#FF9933]/20 border-[#FF9933] scale-[1.01]'
-                      : 'bg-white border-transparent hover:bg-slate-50'
+                      ? 'bg-[#FF9933]/20 border-[#FF9933] ring-2 ring-[#FF9933]/60 scale-[1.01]'
+                      : 'bg-white border-slate-200/80 hover:bg-slate-50 hover:border-slate-300'
                   }`}
                 >
-                  <span className="text-[10px] font-black text-[#0033A0] uppercase tracking-widest block mb-0.5">
-                    🇫🇷 ਫ੍ਰੈਂਚ ਸ਼ਬਦ · French Word
-                  </span>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[10px] font-black text-[#0033A0] uppercase tracking-widest block">
+                      🇫🇷 ਫ੍ਰੈਂਚ ਸ਼ਬਦ · French Word
+                    </span>
+                    <span className="text-[9px] font-bold text-[#00174D] bg-[#FF9933]/30 px-1.5 py-0.5 rounded">
+                      ਸੁਣੋ 🔊
+                    </span>
+                  </div>
                   <h2 className="text-3xl sm:text-4xl font-black text-[#002270] font-brand tracking-tight leading-tight">
                     {word.word}
                   </h2>
@@ -404,17 +480,23 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
 
                 {/* 2. Punjabi Meaning Section (Flat solid Kesari box) */}
                 <div
-                  onClick={(e) => handleSpeakSingleMeaning(word.meaning_pa, e)}
-                  className={`p-3 sm:p-3.5 rounded-2xl border transition-colors cursor-pointer ${
+                  onClick={(e) => handleSectionClick('meaning_pa', word, index, e)}
+                  title="ਕਲਿੱਕ ਕਰਕੇ ਪੰਜਾਬੀ ਅਰਥ ਸੁਣੋ"
+                  className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer active:scale-[0.99] ${
                     currentStep === 'meaning_pa'
-                      ? 'bg-[#FF9933]/25 border-[#FF9933] ring-2 ring-[#FF9933] scale-[1.01]'
-                      : 'bg-[#FF9933]/10 border-[#FF9933]/40 hover:bg-[#FF9933]/15'
+                      ? 'bg-[#FF9933]/30 border-[#FF9933] ring-2 ring-[#FF9933] scale-[1.01]'
+                      : 'bg-[#FF9933]/10 border-[#FF9933]/40 hover:bg-[#FF9933]/20'
                   }`}
                 >
-                  <span className="text-[10px] font-black text-[#FF9933] uppercase tracking-widest flex items-center gap-1 mb-1">
-                    <Sparkles className="w-3 h-3 text-[#FF9933] stroke-[2.5]" />
-                    <span>ਪੰਜਾਬੀ ਅਰਥ · Punjabi Meaning</span>
-                  </span>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-black text-[#FF9933] uppercase tracking-widest flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-[#FF9933] stroke-[2.5]" />
+                      <span>ਪੰਜਾਬੀ ਅਰਥ · Punjabi Meaning</span>
+                    </span>
+                    <span className="text-[9px] font-bold text-[#00174D] bg-[#FF9933] px-1.5 py-0.5 rounded">
+                      ਸੁਣੋ 🔊
+                    </span>
+                  </div>
                   <p className="text-2xl sm:text-3xl font-black text-[#002270] font-gurmukhi leading-snug tracking-tight">
                     {word.meaning_pa}
                   </p>
@@ -422,17 +504,12 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
 
                 {/* 3. Example Sentence Box (French + Punjabi) */}
                 <div
-                  onClick={(e) =>
-                    handleSpeakSingleSentence(
-                      word.example_fr,
-                      word.example_pa,
-                      e
-                    )
-                  }
-                  className={`p-2.5 sm:p-3 rounded-2xl border transition-colors cursor-pointer ${
+                  onClick={(e) => handleSectionClick('example', word, index, e)}
+                  title="ਕਲਿੱਕ ਕਰਕੇ ਉਦਾਹਰਣ ਵਾਕ ਸੁਣੋ"
+                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer active:scale-[0.99] ${
                     currentStep === 'example_fr' || currentStep === 'example_pa'
-                      ? 'bg-slate-100 border-[#0033A0] ring-2 ring-[#0033A0]'
-                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                      ? 'bg-slate-100 border-[#0033A0] ring-2 ring-[#0033A0] scale-[1.01]'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -445,7 +522,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                   </div>
 
                   <p
-                    className={`text-xs sm:text-sm font-bold italic leading-relaxed mb-1 font-brand transition-colors ${
+                    className={`text-sm sm:text-base font-bold italic leading-relaxed mb-1.5 font-brand transition-colors ${
                       currentStep === 'example_fr'
                         ? 'text-[#002270] underline decoration-[#FF9933] decoration-2'
                         : 'text-slate-800'
@@ -455,7 +532,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                   </p>
 
                   <p
-                    className={`text-xs sm:text-sm font-semibold font-gurmukhi leading-relaxed border-t border-slate-200 pt-1 transition-colors ${
+                    className={`text-sm sm:text-base font-semibold font-gurmukhi leading-relaxed border-t border-slate-200 pt-1.5 transition-colors ${
                       currentStep === 'example_pa'
                         ? 'text-[#002270] font-bold'
                         : 'text-slate-600'
@@ -476,49 +553,66 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                   {index > 0 && (
                     <button
                       type="button"
-                      onClick={() => scrollToIndex(index - 1)}
-                      className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#002270] border border-slate-300 active:scale-95"
-                      title="Previous"
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        scrollToIndex(index - 1);
+                      }}
+                      className="p-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors border border-slate-300 active:scale-95"
+                      title="ਪਿਛਲਾ ਸ਼ਬਦ"
                     >
-                      <ChevronUp className="w-3.5 h-3.5" />
+                      <ChevronUp className="w-3.5 h-3.5 stroke-[2.5]" />
                     </button>
                   )}
+
                   {index < words.length - 1 ? (
                     <button
                       type="button"
-                      onClick={() => scrollToIndex(index + 1)}
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        scrollToIndex(index + 1);
+                      }}
                       className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FF9933] text-[#00174D] font-black text-[11px] hover:bg-[#FFD700] transition-colors border border-[#FFD700] active:scale-95 shadow-sm"
+                      title="ਅਗਲਾ ਸ਼ਬਦ"
                     >
                       <span>ਅਗਲਾ ਸ਼ਬਦ</span>
                       <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
                     </button>
                   ) : (
-                    <span className="text-[#FF9933] font-bold text-xs">
-                      ਆਖਰੀ ਸ਼ਬਦ ✨
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('success');
+                        if (onNextLevel) onNextLevel();
+                      }}
+                      className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#FF9933] text-[#00174D] font-black text-[11px] hover:bg-[#FFD700] transition-colors border border-[#FFD700] active:scale-95 shadow-sm"
+                    >
+                      <span>ਅਗਲਾ ਪੱਧਰ ({getNextLevel(selectedLevel)})</span>
+                      <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </button>
                   )}
                 </div>
               </div>
 
-              {/* FLOATING ACTION CONTROL BAR (VERTICAL RIGHT SIDEBAR) */}
-              <aside className="absolute right-2 sm:right-3 bottom-10 sm:bottom-12 z-20 flex flex-col items-center gap-2">
+              {/* FLOATING ACTION CONTROL BAR (INSIDE RIGHT EDGE OF CARD) */}
+              <aside className="absolute right-2 sm:right-3 bottom-12 sm:bottom-14 z-20 flex flex-col items-center gap-2 select-none">
                 {/* 1. Master Teacher Audio (Play / Pause / Pulsing Ring) */}
                 <div className="flex flex-col items-center">
                   <button
                     type="button"
                     id={`btn-narrate-${word.id}`}
-                    aria-label="Teacher Audio Narrator"
+                    aria-label={isNarrating && isActive ? 'Mute teacher commentary' : 'Play teacher commentary'}
                     onClick={(e) => handleToggleNarrator(index, e)}
-                    className={`relative w-10 h-10 rounded-full border-2 transition-all active:scale-90 flex items-center justify-center ${
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 transition-all active:scale-90 flex items-center justify-center shadow-sm ${
                       isNarrating && isActive
                         ? 'bg-[#FF9933] border-[#FFD700] text-[#00174D] ring-2 ring-[#FF9933]'
                         : 'bg-white border-[#FF9933] text-[#002270] hover:bg-[#FF9933] hover:text-[#00174D]'
                     }`}
+                    title={isNarrating && isActive ? 'ਬੰਦ ਕਰੋ' : 'ਸੁਣੋ'}
                   >
                     {isNarrating && isActive ? (
-                      <Volume2 className="w-5 h-5 stroke-[2.5]" />
+                      <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
                     ) : (
-                      <VolumeX className="w-5 h-5 stroke-[2]" />
+                      <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2]" />
                     )}
                   </button>
                   <span className="text-[9px] font-black text-[#002270] mt-0.5">
@@ -532,13 +626,14 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                     type="button"
                     aria-label="Toggle Continuous Loop"
                     onClick={(e) => handleToggleLoop(e)}
-                    className={`w-9 h-9 rounded-full border transition-all active:scale-90 flex items-center justify-center ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border transition-all active:scale-90 flex items-center justify-center shadow-sm ${
                       isLooping
                         ? 'bg-[#002270] border-[#002270] text-[#FFD700]'
                         : 'bg-white border-slate-300 text-slate-400 hover:text-[#002270]'
                     }`}
+                    title={isLooping ? 'ਲੂਪ ਬੰਦ ਕਰੋ' : 'ਵਾਰ-ਵਾਰ ਸੁਣੋ'}
                   >
-                    <Repeat className="w-4 h-4 stroke-[2]" />
+                    <Repeat className="w-3.5 h-3.5 stroke-[2]" />
                   </button>
                   <span className="text-[9px] font-bold text-slate-600 mt-0.5">
                     {isLooping ? 'ਲੂਪ' : '1 ਵਾਰ'}
@@ -551,7 +646,8 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                     type="button"
                     aria-label="Change French Pronunciation Speed"
                     onClick={(e) => handleCycleSpeed(e)}
-                    className="w-9 h-9 rounded-full bg-white border border-[#FF9933] text-[#002270] hover:bg-[#FF9933]/15 transition-all active:scale-90 flex items-center justify-center font-black text-[10px]"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white border border-[#FF9933] text-[#002270] hover:bg-[#FF9933]/15 transition-all active:scale-90 flex items-center justify-center font-black text-[10px] shadow-sm"
+                    title="ਫ੍ਰੈਂਚ ਬੋਲਣ ਦੀ ਰਫ਼ਤਾਰ (1x, 0.75x, 0.5x)"
                   >
                     <span>{speed}x</span>
                   </button>
@@ -566,14 +662,15 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                     type="button"
                     aria-label="Mark Word as Mastered"
                     onClick={(e) => handleToggleMastered(word.id, e)}
-                    className={`w-9 h-9 rounded-full border transition-all active:scale-90 flex items-center justify-center ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border transition-all active:scale-90 flex items-center justify-center shadow-sm ${
                       isMastered
                         ? 'bg-[#FF9933] border-[#FF9933] text-[#00174D]'
                         : 'bg-white border-slate-300 text-slate-400 hover:text-[#FF9933]'
                     }`}
+                    title={isMastered ? 'ਯਾਦ ਹੋ ਗਿਆ' : 'ਸੇਵ ਕਰੋ'}
                   >
                     <Bookmark
-                      className={`w-4 h-4 ${isMastered ? 'fill-[#00174D]' : ''}`}
+                      className={`w-3.5 h-3.5 ${isMastered ? 'fill-[#00174D]' : ''}`}
                     />
                   </button>
                   <span className="text-[9px] font-bold text-slate-600 mt-0.5">
@@ -587,12 +684,13 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                     type="button"
                     aria-label="Copy word details"
                     onClick={(e) => handleShare(word, e)}
-                    className="w-9 h-9 rounded-full bg-white border border-slate-300 text-slate-500 hover:text-[#002270] transition-all active:scale-90 flex items-center justify-center"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white border border-slate-300 text-slate-500 hover:text-[#002270] transition-all active:scale-90 flex items-center justify-center shadow-sm"
+                    title="ਸ਼ੇਅਰ ਕਰੋ"
                   >
                     {copiedId === word.id ? (
-                      <Check className="w-4 h-4 text-green-600 stroke-[3]" />
+                      <Check className="w-3.5 h-3.5 text-green-600 stroke-[3]" />
                     ) : (
-                      <Share2 className="w-4 h-4" />
+                      <Share2 className="w-3.5 h-3.5" />
                     )}
                   </button>
                   <span className="text-[9px] font-bold text-slate-600 mt-0.5">

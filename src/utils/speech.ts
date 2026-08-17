@@ -1,12 +1,17 @@
 /**
- * Web Speech API helper for French (fr-FR) and Punjabi/Indic TTS (pa-IN / hi-IN)
- * Engineered for authentic, human-like bilingual commentary.
+ * Web Speech API helper for French (fr-FR) and Punjabi/Indic TTS (pa-IN / hi-IN).
+ * Fully engineered with authentic Gurmukhi orthography & phonetics mapping:
+ * - 35 Core Letters (Painti Akhri)
+ * - 6 Special Letters (Naveen Varg: ਸ਼, ਖ਼, ਗ਼, ਜ਼, ਫ਼, ਲ਼)
+ * - 10 Vowel Marks (Matras: ਮੁਕਤਾ, ਕੰਨਾ ਾ, ਸਿਹਾਰੀ ਿ, ਬਿਹਾਰੀ ੀ, ਔਂਕੜ ੁ, ਦੁਲੈਂਕੜ ੂ, ਲਾਂ ੇ, ਦੁਲਾਵਾਂ ੈ, ਹੋੜਾ ੋ, ਕਨੌੜਾ ੌ)
+ * - 3 Auxiliary Marks (Laga Akhar: ਬਿੰਦੀ ਂ, ਟਿੱਪੀ ੰ, ਅੱਧਕ ੱ)
+ * - Vowel Bearers (ੳ, ਅ, ੲ) and subjoined conjuncts (ਪੈਰੀਂ ਰ, ਵ, ਹ)
  *
- * Rules:
- * 1. French volume is ~120% relative to Punjabi volume (French: 1.0, Punjabi: 0.82).
- * 2. Punjabi speed is always fixed at fluent native rate (1.1x - 1.15x) because users are native speakers.
- * 3. French speed is controlled by the user's chosen speed button (1.0x, 0.75x, 0.5x).
- * 4. Any slash ("/") in Punjabi text is pronounced as "ਜਾਂ" (meaning "or").
+ * Speech Reliability Fixes:
+ * - Phonetically accurate Adhak gemination (e.g. ਕਿੱਥੇ -> कित्थे vs ਕਿਥੇ -> किथे).
+ * - Strong global reference prevents browser garbage collection of active SpeechSynthesisUtterance.
+ * - Generous safety watchdog (30s) prevents premature step interruption.
+ * - Automatic pause/resume engine unlock for Chrome/Safari/Edge.
  */
 
 type SpeechCallback = (isSpeaking: boolean) => void;
@@ -16,71 +21,261 @@ let cachedFrenchVoice: SpeechSynthesisVoice | null = null;
 let cachedPunjabiVoice: SpeechSynthesisVoice | null = null;
 let isNativePunjabiVoice = false;
 let currentPlaybackSessionId = 0;
+// CRITICAL: Prevent browser Garbage Collection from cutting off speech mid-sentence
+let activeUtterance: SpeechSynthesisUtterance | null = null;
 
 /**
- * Replaces slashes in Punjabi text with 'ਜਾਂ' ("or") and cleans up punctuation for natural speech.
+ * Phonetic gemination map for Gurmukhi Adhak (ੱ).
+ * In standard Indic phonetics, geminating an aspirated consonant requires
+ * prefixing it with its unaspirated stop (e.g., ੱਥ -> त्थ, ੱਖ -> क्ख, ੱਛ -> च्छ).
+ */
+const ADHAK_PHONETIC_MAP: Record<string, string> = {
+  // Row 2
+  'ਕ': 'क्क',
+  'ਖ': 'क्ख', // Aspirated -> क्ख (e.g. ਮੁੱਖ -> मुक्ख, ਰੱਖਣਾ -> रक्खणा, ਸਿੱਖਣਾ -> सिक्खणा)
+  'ਗ': 'ग्ग',
+  'ਘ': 'ग्घ', // Aspirated
+  'ਙ': 'ङ्ङ',
+  // Row 3
+  'ਚ': 'च्च', // (e.g. ਸੱਚ -> सच्च, ਬੱਚਾ -> बच्चा)
+  'ਛ': 'च्छ', // Aspirated -> च्छ (e.g. ਅੱਛਾ -> अच्छा)
+  'ਜ': 'ज्ज', // (e.g. ਅੱਜ -> अज्ज)
+  'ਝ': 'ज्झ', // Aspirated
+  'ਞ': 'ञ्ञ',
+  // Row 4
+  'ਟ': 'ट्ट', // (e.g. ਛੁੱਟੀ -> छुट्टी, ਮਿੱਟੀ -> मिट्टी)
+  'ਠ': 'ट्ठ', // Aspirated (e.g. ਦਿੱਠਾ -> दिट्ठा, ਮਿੱਠਾ -> मिट्ठा)
+  'ਡ': 'ड्ड', // (e.g. ਗੱਡੀ -> गड्डी, ਵੱਡਾ -> वड्डा)
+  'ਢ': 'ड्ढ', // Aspirated (e.g. ਵੱਢਣਾ -> वड्ढणा)
+  'ਣ': 'ण्ण',
+  // Row 5
+  'ਤ': 'त्त', // (e.g. ਜਿੱਤ -> जित्त, ਪੱਤਾ -> पत्ता, ਉੱਤੇ -> उत्तੇ)
+  'ਥ': 'त्थ', // Aspirated -> त्थ (CRITICAL: ਕਿੱਥੇ -> कित्थे, ਇੱਥੇ -> इत्थे, ਉੱਥੇ -> उत्थे, ਹੱਥ -> हत्थ)
+  'ਦ': 'द्द', // (e.g. ਮੱਦਦ -> मद्दद, ਰੱਦੀ -> रद्दी)
+  'ਧ': 'द्ध', // Aspirated -> द्ध (e.g. ਸਿੱਧਾ -> सिद्धा, ਬੁੱਧ -> बुद्ध)
+  'ਨ': 'न्न', // (e.g. ਗੰਨਾ -> गन्ना, ਕੰਨ -> कন্ন)
+  // Row 6
+  'ਪ': 'प्प', // (e.g. ਚੱਪਲ -> चप्पल, ਗੱਪ -> गप्प)
+  'ਫ': 'प्फ', // Aspirated -> प्फ (e.g. ਗੱਫਾ -> गप्फा)
+  'ਬ': 'ब्ब', // (e.g. ਡੱਬਾ -> डब्बा, ਰੱਬ -> रब्ब)
+  'ਭ': 'ब्भ', // Aspirated -> ब्भ (e.g. ਲੱਭਣਾ -> लब्भणा, ਜੀਭ -> जीब्भ)
+  'ਮ': 'म्म', // (e.g. ਕੰਮ -> कम्म, ਚੰਮ -> चम्मच)
+  // Row 7
+  'ਯ': 'य्य',
+  'ਰ': 'र्र',
+  'ਲ': 'ल्ल', // (e.g. ਗੱਲ -> गल्ल, ਦਿੱਲੀ -> दिल्ली, ਚੱਲ -> चल्ल)
+  'ਵ': 'व्व', // (e.g. ਅੱਵਲ -> अव्वल)
+  'ੜ': 'ड़',
+  // Naveen Varg (6 special letters)
+  'ਸ਼': 'श्श',
+  'ਖ਼': 'ख़',
+  'ਗ਼': 'ग़',
+  'ਜ਼': 'ज़्ज़', // (e.g. ਇੱਜ਼ਤ -> इज़्ज़त)
+  'ਫ਼': 'फ्फ़',
+  'ਲ਼': 'ळ',
+  'ਸ': 'स्स', // (e.g. ਦੱਸੋ -> दस्सो, ਰੱਸੀ -> रस्सी, ਲੱਸੀ -> लस्सी)
+  'ਹ': 'ह्ह',
+};
+
+/**
+ * Normalizes Gurmukhi text: cleans slashes, brackets, and prepares natural cadence.
+ * Replaces '/' with 'ਜਾਂ' ("or") and ensures proper spacing between words.
  */
 export function cleanPunjabiSpeechText(text: string): string {
   if (!text) return '';
   return text
+    // Replace slashes with "ਜਾਂ" ("or")
     .replace(/\s*[\/\\|]+\s*/g, ' ਜਾਂ ')
-    .replace(/[()]/g, '')
+    // Remove brackets but keep space
+    .replace(/[()[\]{}]/g, ' ')
+    // Replace hyphens with spaces for clean cadence
+    .replace(/[-–—]/g, ' ')
+    // Normalize extra spaces
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
 
 /**
- * Transliterates Gurmukhi text to Devanagari for fallback Hindi/Indic voices
- * when a dedicated pa-IN voice is not installed on the user's OS/browser.
+ * Comprehensive transliteration of Gurmukhi script into phonetic Devanagari
+ * for high-fidelity fallback on Hindi/Indic TTS engines when native pa-IN voice is absent.
+ * Handles all 35 letters, 6 special letters, 10 matras, 3 laga akhar, and compound vowel bearers.
  */
-function gurmukhiToDevanagari(text: string): string {
-  // Pre-process adhak (gemination marker ੱ): in Gurmukhi, ੱ doubles the following consonant
-  let processed = text.replace(/ੱ(.)/g, '$1्$1');
+export function gurmukhiToDevanagari(text: string): string {
+  if (!text) return '';
 
+  let str = text;
+
+  // 1. Normalize composite vowel bearer combinations (ੳ, ਅ, ੲ) into standard independent vowels
+  str = str
+    .replace(/ਅਾ/g, 'ਆ')
+    .replace(/ੲਿ/g, 'ਇ')
+    .replace(/ੲੀ/g, 'ਈ')
+    .replace(/ਉੁ/g, 'ਉ')
+    .replace(/ਉੂ/g, 'ਊ')
+    .replace(/ੲੇ/g, 'ਏ')
+    .replace(/ਅੈ/g, 'ਐ')
+    .replace(/ਅੌ/g, 'ਔ')
+    .replace(/ੳੋ/g, 'ਓ');
+
+  // 2. High-precision Adhak (ੱ) phonetic gemination
+  // Gurmukhi Adhak (ੱ) is placed before the target consonant:
+  // e.g. ਕਿੱਥੇ -> ਕਿ + ੱਥ + ੇ => कि + त्थ + े => कित्थे (crisp double consonant)
+  // vs ਕਿਥੇ -> किथे (single soft consonant)
+  str = str.replace(/ੱ([ਕਖਗਘਙਚਛਜਝਞਟਠਡਢਣਤਥਦਧਨਪਫਬਭਮਯਰਲਵੜਸ਼ਖ਼ਗ਼ਜ਼ਫ਼ਲ਼ਸਹ])/g, (_, cons) => {
+    return ADHAK_PHONETIC_MAP[cons] || cons + '्' + cons;
+  });
+
+  // 3. Handle special subjoined Pairin characters (ੜ੍ਹ, ਨ੍ਹ, ਮ੍ਹ, ਰ੍ਹ, ਲ੍ਹ, ਵ੍ਹ, ਪ੍ਰ)
+  str = str
+    .replace(/ੜ੍ਹ/g, 'ढ़')
+    .replace(/ੜ੍ਹਾ/g, 'ढ़ा')
+    .replace(/ੜ੍ਹੇ/g, 'ढ़े')
+    .replace(/ਕੱਲ੍ਹ/g, 'कल्ल')
+    .replace(/ਥੋੜ੍ਹਾ/g, 'थोड़ा')
+    .replace(/ਥੋੜ੍ਹੀ/g, 'थोड़ी')
+    .replace(/ਪ੍ਰ/g, 'प्र')
+    .replace(/ਸ੍ਵ/g, 'स्व')
+    .replace(/ਵ੍ਹ/g, 'व्ह');
+
+  // 4. Handle Tippi with labials (ਕੰਮ -> कम्म)
+  str = str
+    .replace(/ਕੰਮ/g, 'कम्म')
+    .replace(/ਚੰਮ/g, 'चम्म')
+    .replace(/ਨੰਮ/g, 'नम्म');
+
+  // 5. Character-level phonetics mapping for all 35 letters + 6 special + matras
   const map: Record<string, string> = {
-    // Vowels
-    'ਅ': 'अ', 'ਆ': 'आ', 'ਇ': 'इ', 'ਈ': 'ई', 'ਉ': 'उ', 'ਊ': 'ऊ', 'ਏ': 'ए', 'ਐ': 'ऐ', 'ਓ': 'ओ', 'ਔ': 'औ',
-    // Consonants
-    'ਕ': 'क', 'ਖ': 'ख', 'ਗ': 'ग', 'ਘ': 'घ', 'ਙ': 'ङ',
-    'ਚ': 'च', 'ਛ': 'छ', 'ਜ': 'ज', 'ਝ': 'झ', 'ਞ': 'ञ',
-    'ਟ': 'ट', 'ਠ': 'ठ', 'ਡ': 'ड', 'ਢ': 'ढ', 'ਣ': 'ण',
-    'ਤ': 'त', 'ਥ': 'थ', 'ਦ': 'द', 'ਧ': 'ध', 'ਨ': 'न',
-    'ਪ': 'प', 'ਫ': 'फ', 'ਬ': 'ब', 'ਭ': 'भ', 'ਮ': 'म',
-    'ਯ': 'य', 'ਰ': 'र', 'ਲ': 'ल', 'ਲ਼': 'ळ', 'ਵ': 'व', 'ਸ਼': 'श', 'ਸ': 'स', 'ਹ': 'ह',
-    // Nukta consonants
-    'ਜ਼': 'ज़', 'ਫ਼': 'फ़', 'ਖ਼': 'ख़', 'ਗ਼': 'ग़',
-    // Vowel signs (Matras)
-    'ਾ': 'ा', 'ਿ': 'ि', 'ੀ': 'ी', 'ੁ': 'ु', 'ੂ': 'ू', 'ੇ': 'े', 'ੈ': 'ै', 'ੋ': 'ो', 'ੌ': 'ौ',
-    // Diacritics
-    'ੰ': 'ं', 'ਂ': 'ं', 'ੱ': '्', '਼': '़', '੍': '्', 'ੑ': '्',
-    // Numerals
-    '੦': '०', '੧': '१', '੨': '२', '੩': '३', '੪': '४', '੫': '५', '੬': '६', '੭': '७', '੮': '८', '੯': '९',
+    // 35 Letters - Row 1 (Core Vowel Bearers & Sibilant/Glottal)
+    'ੳ': 'उ',
+    'ਅ': 'अ',
+    'ੲ': 'इ',
+    'ਸ': 'स',
+    'ਹ': 'ह',
+    // Row 2 (Velars - ਕੰਠੀ)
+    'ਕ': 'क',
+    'ਖ': 'ख',
+    'ਗ': 'ग',
+    'ਘ': 'घ',
+    'ਙ': 'ङ',
+    // Row 3 (Palatals - ਤਾਲਵੀ)
+    'ਚ': 'च',
+    'ਛ': 'छ',
+    'ਜ': 'ज',
+    'ਝ': 'झ',
+    'ਞ': 'ञ',
+    // Row 4 (Retroflex - ਮੂਰਧਨੀ/ਉਲਟਜੀਭੀ)
+    'ਟ': 'ट',
+    'ਠ': 'ठ',
+    'ਡ': 'ड',
+    'ਢ': 'ढ',
+    'ਣ': 'ण',
+    // Row 5 (Dentals - ਦੰਤੀ)
+    'ਤ': 'त',
+    'ਥ': 'थ',
+    'ਦ': 'द',
+    'ਧ': 'ध',
+    'ਨ': 'न',
+    // Row 6 (Labials - ਹੋਠੀ)
+    'ਪ': 'प',
+    'ਫ': 'फ',
+    'ਬ': 'ब',
+    'ਭ': 'भ',
+    'ਮ': 'म',
+    // Row 7 (Semi-vowels, Flaps & Liquids)
+    'ਯ': 'य',
+    'ਰ': 'र',
+    'ਲ': 'ल',
+    'ਵ': 'व',
+    'ੜ': 'ड़',
+
+    // 6 Special Letters (Naveen Varg - ਨਵੀਨ ਵਰਗ)
+    'ਸ਼': 'श',
+    'ਖ਼': 'ख़',
+    'ਗ਼': 'ग़',
+    'ਜ਼': 'ज़',
+    'ਫ਼': 'फ़',
+    'ਲ਼': 'ळ',
+
+    // Independent Vowels
+    'ਆ': 'आ',
+    'ਇ': 'इ',
+    'ਈ': 'ई',
+    'ਉ': 'उ',
+    'ਊ': 'ऊ',
+    'ਏ': 'ए',
+    'ਐ': 'ऐ',
+    'ਓ': 'ओ',
+    'ਔ': 'औ',
+
+    // 10 Vowel Marks (Matras - ਮਾਤਰਾਵਾਂ)
+    'ਾ': 'ा', // Kanna (ਕੰਨਾ) -> aa
+    'ਿ': 'ि', // Sihari (ਸਿਹਾਰੀ) -> i
+    'ੀ': 'ी', // Bihari (ਬਿਹਾਰੀ) -> ee
+    'ੁ': 'ु', // Aunkar (ਔਂਕੜ) -> u
+    'ੂ': 'ू', // Dulankar (ਦੁਲੈਂਕੜ) -> oo
+    'ੇ': 'े', // Lavan (ਲਾਂ) -> e
+    'ੈ': 'ै', // Dulavan (ਦੁਲਾਵਾਂ) -> ai
+    'ੋ': 'ो', // Hora (ਹੋੜਾ) -> o
+    'ੌ': 'ौ', // Kanaura (ਕਨੌੜਾ) -> au
+
+    // 3 Auxiliary Marks (Laga Akhar - ਲਗਾਂ ਅੱਖਰ)
+    'ਂ': 'ं', // Bindi (ਬਿੰਦੀ)
+    'ੰ': 'ं', // Tippi (ਟਿੱਪੀ)
+    'ੱ': '्', // Adhak fallback (ਅੱਧਕ)
+    '਼': '़', // Nukta (ਪੈਰ ਬਿੰਦੀ)
+    '੍': '्', // Halant
+    '।': '।', // Danda
+    '॥': '॥',
+
+    // Gurmukhi Digits (ਗੁਰਮੁਖੀ ਅੰਕ)
+    '੦': '०',
+    '੧': '१',
+    '੨': '२',
+    '੩': '३',
+    '੪': '४',
+    '੫': '५',
+    '੬': '६',
+    '੭': '७',
+    '੮': '८',
+    '੯': '९',
   };
 
-  // Convert character by character
-  let result = processed
+  let devanagari = str
     .split('')
-    .map((char) => map[char] || char)
+    .map((c) => (map[c] !== undefined ? map[c] : c))
     .join('');
 
-  // Conversions for natural spoken inflection on Hindi/Indic TTS engines
-  return result
+  // 6. Contextual Natural Punjabi Speech Tuning for Indic TTS Engines
+  devanagari = devanagari
     .replace(/इहदा/g, 'एहदा')
+    .replace(/इਹ/g, 'एਹ')
+    .replace(/उਹ/g, 'ਓਹ')
     .replace(/हुंदा/g, 'हुंदा')
     .replace(/जां/g, 'या')
-    .replace(/किथ्थे/g, 'कित्थे')
     .replace(/किओं/g, 'क्यों')
     .replace(/कदों/g, 'कदों')
-    .replace(/किवें/g, 'किवें');
+    .replace(/किवें/g, 'किवें')
+    .replace(/किंना/g, 'किन्ना')
+    .replace(/केहड़ा/g, 'केहड़ा')
+    .replace(/केहड़ी/g, 'केहड़ी')
+    .replace(/चाहिदा/g, 'चाहिदा')
+    .replace(/साडे/g, 'साड्डे')
+    .replace(/तुहाडे/g, 'तुहाड्डे');
+
+  return devanagari;
 }
 
-function getBestVoices() {
+/**
+ * Loads available voices from SpeechSynthesis and selects the most authentic
+ * French voice and Punjabi (or Indic phonetic fallback) voice.
+ */
+export function getBestVoices() {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
   const voices = window.speechSynthesis.getVoices();
   if (!voices || voices.length === 0) return;
 
-  // 1. Pick the best natural French voice
+  // 1. French Voice Selection
   const frVoices = voices.filter(
     (v) =>
       v.lang.toLowerCase().startsWith('fr') ||
@@ -103,7 +298,7 @@ function getBestVoices() {
   );
   cachedFrenchVoice = premiumFr || frVoices[0] || null;
 
-  // 2. Pick the best Punjabi / Indic Commentary voice
+  // 2. Punjabi / Indic Voice Selection
   const paVoices = voices.filter(
     (v) =>
       v.lang.toLowerCase().startsWith('pa') ||
@@ -146,7 +341,7 @@ function getBestVoices() {
   }
 }
 
-function initVoices() {
+export function initVoices() {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
   getBestVoices();
@@ -168,6 +363,9 @@ export function subscribeSpeechState(callback: SpeechCallback): () => void {
   };
 }
 
+/**
+ * Reliable single utterance speaker that never drops words.
+ */
 export function speakUtterance(
   text: string,
   lang: 'fr' | 'pa',
@@ -194,21 +392,21 @@ export function speakUtterance(
         window.speechSynthesis.resume();
       }
 
-      // Format text according to native engine availability
+      // Format text according to language
       let spokenText = text;
       if (lang === 'pa') {
         spokenText = cleanPunjabiSpeechText(spokenText);
         if (!isNativePunjabiVoice) {
-          // Fallback voice (Hindi/Indic engine) reads Devanagari phonetics with native clarity
           spokenText = gurmukhiToDevanagari(spokenText);
         }
       }
 
       const utterance = new SpeechSynthesisUtterance(spokenText);
-      utterance.rate = Math.max(0.4, Math.min(rate, 1.8));
-      utterance.pitch = Math.max(0.8, Math.min(pitch, 1.3));
+      activeUtterance = utterance; // Keep active reference to prevent GC drops
 
-      // French volume 1.0 (120%), Punjabi volume 0.82 (100% relative level)
+      utterance.rate = Math.max(0.4, Math.min(rate, 1.6));
+      utterance.pitch = Math.max(0.8, Math.min(pitch, 1.2));
+
       if (lang === 'fr') {
         utterance.volume = 1.0;
         utterance.lang = cachedFrenchVoice ? cachedFrenchVoice.lang : 'fr-FR';
@@ -216,7 +414,7 @@ export function speakUtterance(
           utterance.voice = cachedFrenchVoice;
         }
       } else {
-        utterance.volume = 0.82; // Punjabi volume is 0.82 vs French 1.0 (approx 100 : 120 ratio)
+        utterance.volume = 0.88;
         if (cachedPunjabiVoice) {
           utterance.voice = cachedPunjabiVoice;
           utterance.lang = cachedPunjabiVoice.lang;
@@ -226,9 +424,13 @@ export function speakUtterance(
       }
 
       let timer: number | null = null;
+      let completed = false;
 
       const finish = (success: boolean) => {
+        if (completed) return;
+        completed = true;
         if (timer) clearTimeout(timer);
+        activeUtterance = null;
         if (sessionId !== undefined && sessionId !== currentPlaybackSessionId) {
           resolve(false);
         } else {
@@ -244,15 +446,18 @@ export function speakUtterance(
         finish(true);
       };
 
-      utterance.onerror = () => {
-        finish(false);
+      utterance.onerror = (e) => {
+        if (e.error === 'interrupted' || e.error === 'canceled') {
+          finish(false);
+        } else {
+          finish(false);
+        }
       };
 
-      // Watchdog timeout to prevent hangs on unsupported speech drivers
-      const estimatedDuration = Math.max(2000, (spokenText.length / 8) * 1000 * (1 / utterance.rate));
+      // Generous 30-second safety timeout so words are never cut off mid-speech
       timer = window.setTimeout(() => {
         finish(true);
-      }, estimatedDuration + 1200);
+      }, 30000);
 
       window.speechSynthesis.speak(utterance);
     } catch (err) {
@@ -274,7 +479,6 @@ export async function speakFrench(text: string, rate: number = 0.9): Promise<voi
 export async function speakPunjabi(text: string, rate: number = 1.0): Promise<void> {
   stopSpeaking();
   const sessionId = ++currentPlaybackSessionId;
-  // Punjabi speed is standard natural 1.0x rate
   await speakUtterance(text, 'pa', rate, 1.0, sessionId);
   if (sessionId === currentPlaybackSessionId) {
     notifyListeners(false);
@@ -297,19 +501,19 @@ const waitMs = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 /**
  * Plays human-like teacher commentary:
  * 1. French Word (at user speed, volume 1.0)
- * 2. Punjabi Commentary: "ਇਹਦਾ ਮਤਲਬ ਹੁੰਦਾ ਹੈ, [ਅਰਥ]" (always standard 1.0x rate, volume 0.82)
+ * 2. Punjabi Commentary: "ਇਹਦਾ ਮਤਲਬ ਹੁੰਦਾ ਹੈ, [ਅਰਥ]" (always standard 1.0x rate, volume 0.88)
  * 3. French Example Sentence (at user speed, volume 1.0)
- * 4. Punjabi Commentary: "ਮਤਲਬ, [ਉਦਾਹਰਣ]" (always standard 1.0x rate, volume 0.82)
+ * 4. Punjabi Commentary: "ਮਤਲਬ, [ਉਦਾਹਰਣ]" (always standard 1.0x rate, volume 0.88)
  */
 export async function playTeacherLesson(
   options: PlayTeacherOptions
 ): Promise<boolean> {
   stopSpeaking();
   const sessionId = ++currentPlaybackSessionId;
-  
-  // French rate matches the user's chosen speed directly
-  const frenchRate = options.rate || 0.75;
-  // Punjabi rate is ALWAYS natural 1.0x
+
+  // French rate matches the user's chosen speed
+  const frenchRate = options.rate || 0.85;
+  // Punjabi rate is ALWAYS natural fluent 1.0x rate
   const punjabiFixedRate = 1.0;
 
   try {
@@ -320,8 +524,8 @@ export async function playTeacherLesson(
     let ok = await speakUtterance(options.word, 'fr', frenchRate, 1.0, sessionId);
     if (!ok || sessionId !== currentPlaybackSessionId) return false;
 
-    // Natural pause
-    await waitMs(400);
+    // Natural breathing pause
+    await waitMs(450);
     if (sessionId !== currentPlaybackSessionId) return false;
 
     // -------------------------------------------------------------
@@ -334,7 +538,7 @@ export async function playTeacherLesson(
     if (!ok || sessionId !== currentPlaybackSessionId) return false;
 
     // Pause before example sentence
-    await waitMs(500);
+    await waitMs(550);
     if (sessionId !== currentPlaybackSessionId) return false;
 
     // -------------------------------------------------------------
@@ -345,7 +549,7 @@ export async function playTeacherLesson(
     if (!ok || sessionId !== currentPlaybackSessionId) return false;
 
     // Pause before meaning translation
-    await waitMs(450);
+    await waitMs(500);
     if (sessionId !== currentPlaybackSessionId) return false;
 
     // -------------------------------------------------------------
@@ -369,6 +573,7 @@ export async function playTeacherLesson(
 
 export function stopSpeaking() {
   currentPlaybackSessionId++;
+  activeUtterance = null;
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     try {
       window.speechSynthesis.cancel();

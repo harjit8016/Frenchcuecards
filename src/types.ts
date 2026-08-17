@@ -14,6 +14,24 @@ export interface VocabularyWord {
   example_pa: string; // Punjabi translation of example sentence
 }
 
+export interface TeacherAdCard {
+  id: string;
+  isAd: true;
+  level: CEFRLevel;
+  title_fr: string;
+  title_pa: string;
+  subtitle_fr: string;
+  subtitle_pa: string;
+  bio_pa: string;
+  linkUrl: string;
+  instagramHandle: string;
+  badge: string;
+}
+
+export type FeedCardItem = 
+  | (VocabularyWord & { isAd?: false })
+  | TeacherAdCard;
+
 export interface LevelMetadata {
   level: CEFRLevel;
   title: string;
