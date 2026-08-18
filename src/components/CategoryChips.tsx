@@ -10,10 +10,14 @@ interface CategoryChipsProps {
 
 const CATEGORIES: { id: WordCategory; labelPa: string; labelEn: string; icon: string }[] = [
   { id: 'all', labelPa: 'ਸਾਰੇ', labelEn: 'All', icon: '✨' },
+  { id: 'greetings', labelPa: 'ਸੁਆਗਤ ਤੇ ਮੂਲ', labelEn: 'Greetings', icon: '👋' },
   { id: 'verbs', labelPa: 'ਕਿਰਿਆਵਾਂ', labelEn: 'Verbs', icon: '⚡' },
+  { id: 'pronouns', labelPa: 'ਪੜਨਾਂਵ & Moi', labelEn: 'Pronouns', icon: '👤' },
+  { id: 'connectors', labelPa: 'ਜੋੜਨ ਵਾਲੇ', labelEn: 'Connectors', icon: '🔗' },
+  { id: 'exam', labelPa: 'TEF / TCF', labelEn: 'Exam Prep', icon: '🎯' },
   { id: 'questions', labelPa: 'ਸਵਾਲੀਆ', labelEn: 'Questions', icon: '❓' },
   { id: 'family', labelPa: 'ਪਰਿਵਾਰ', labelEn: 'Family', icon: '👨‍👩‍👧' },
-  { id: 'connectors', labelPa: 'ਜੋੜਨ ਵਾਲੇ', labelEn: 'Connectors', icon: '🔗' },
+  { id: 'accents', labelPa: 'ਸੁਰ ਤੇ ਨਿਯਮ', labelEn: 'Accents & Rules', icon: '🔤' },
   { id: 'grammar', labelPa: 'ਮੂਲ ਵਾਕ', labelEn: 'Grammar', icon: '📖' },
 ];
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppMode } from '../types';
 import { ModeSwitch } from './ModeSwitch';
-import { Bookmark, SlidersHorizontal, ChevronUp } from 'lucide-react';
+import { Bookmark, SlidersHorizontal, ChevronUp, BarChart2 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 
 interface HeaderProps {
@@ -12,6 +12,7 @@ interface HeaderProps {
   onToggleShowSaved: () => void;
   showControls: boolean;
   onToggleControls: () => void;
+  onOpenAnalytics?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,10 +23,13 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleShowSaved,
   showControls,
   onToggleControls,
+  onOpenAnalytics,
 }) => {
   return (
     <header className="w-full pt-2 pb-1 px-3 max-w-md mx-auto flex items-center justify-between gap-1.5 select-none">
-      <ModeSwitch mode={mode} onModeChange={onModeChange} />
+      <div className="flex items-center gap-1.5 shrink-0">
+        <ModeSwitch mode={mode} onModeChange={onModeChange} />
+      </div>
 
       <div className="flex items-center gap-1.5">
         {/* Toggle Controls (Auto-hideable navigation bar) */}
@@ -45,12 +49,28 @@ export const Header: React.FC<HeaderProps> = ({
             title={showControls ? 'ਕੰਟਰੋਲ ਛੁਪਾਓ (Hide Controls)' : 'ਕੰਟਰੋਲ ਦਿਖਾਓ (Show Controls)'}
           >
             <SlidersHorizontal className="w-3.5 h-3.5 shrink-0 opacity-80" />
-            <span className="font-gurmukhi">ਕੰਟਰੋਲ</span>
+            <span className="font-gurmukhi text-[11px] sm:text-xs">ਕੰਟਰੋਲ</span>
             <ChevronUp
               className={`w-3 h-3 transition-transform duration-200 opacity-80 ${
                 showControls ? 'rotate-0' : 'rotate-180'
               }`}
             />
+          </button>
+        )}
+
+        {/* Live Analytics Button */}
+        {onOpenAnalytics && (
+          <button
+            type="button"
+            id="btn-open-analytics"
+            onClick={() => {
+              triggerHaptic('selection');
+              onOpenAnalytics();
+            }}
+            className="p-1.5 rounded-xl bg-[#002270] text-[#88B0FF] border border-[#0033A0] hover:text-[#FFD700] hover:border-[#FFD700]/50 active:scale-95 transition-colors"
+            title="ਲਾਈਵ ਐਨਾਲਿਟਿਕਸ (Live Analytics Dashboard)"
+          >
+            <BarChart2 className="w-3.5 h-3.5" />
           </button>
         )}
 
@@ -89,5 +109,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-
-

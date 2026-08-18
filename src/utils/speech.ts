@@ -348,6 +348,18 @@ export function initVoices() {
   if (window.speechSynthesis.onvoiceschanged !== undefined) {
     window.speechSynthesis.onvoiceschanged = getBestVoices;
   }
+
+  // Automatically cancel and stop audio if tab is hidden, backgrounded, or frozen
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopSpeaking();
+      }
+    });
+    window.addEventListener('pagehide', () => {
+      stopSpeaking();
+    });
+  }
 }
 
 initVoices();
@@ -380,6 +392,11 @@ export function speakUtterance(
     }
 
     if (sessionId !== undefined && sessionId !== currentPlaybackSessionId) {
+      resolve(false);
+      return;
+    }
+
+    if (typeof document !== 'undefined' && document.hidden) {
       resolve(false);
       return;
     }
@@ -517,16 +534,18 @@ export async function playTeacherLesson(
   const punjabiFixedRate = 1.0;
 
   try {
+    if (typeof document !== 'undefined' && document.hidden) return false;
+
     // -------------------------------------------------------------
     // STEP 1: Speak French Word
     // -------------------------------------------------------------
     options.onStepChange?.('word_fr');
     let ok = await speakUtterance(options.word, 'fr', frenchRate, 1.0, sessionId);
-    if (!ok || sessionId !== currentPlaybackSessionId) return false;
+    if (!ok || sessionId !== currentPlaybackSessionId || (typeof document !== 'undefined' && document.hidden)) return false;
 
     // Natural breathing pause
     await waitMs(450);
-    if (sessionId !== currentPlaybackSessionId) return false;
+    if (sessionId !== currentPlaybackSessionId || (typeof document !== 'undefined' && document.hidden)) return false;
 
     // -------------------------------------------------------------
     // STEP 2: Punjabi Commentary: "ਇਹਦਾ ਮਤਲਬ ਹੁੰਦਾ ਹੈ, [ਪੰਜਾਬੀ ਸ਼ਬਦ]"
@@ -535,22 +554,22 @@ export async function playTeacherLesson(
     const cleanedMeaning = cleanPunjabiSpeechText(options.meaning_pa);
     const punjabiPhrase = `ਇਹਦਾ ਮਤਲਬ ਹੁੰਦਾ ਹੈ, ${cleanedMeaning}।`;
     ok = await speakUtterance(punjabiPhrase, 'pa', punjabiFixedRate, 1.0, sessionId);
-    if (!ok || sessionId !== currentPlaybackSessionId) return false;
+    if (!ok || sessionId !== currentPlaybackSessionId || (typeof document !== 'undefined' && document.hidden)) return false;
 
     // Pause before example sentence
     await waitMs(550);
-    if (sessionId !== currentPlaybackSessionId) return false;
+    if (sessionId !== currentPlaybackSessionId || (typeof document !== 'undefined' && document.hidden)) return false;
 
     // -------------------------------------------------------------
     // STEP 3: French Example Sentence
     // -------------------------------------------------------------
     options.onStepChange?.('example_fr');
     ok = await speakUtterance(options.example_fr, 'fr', frenchRate, 1.0, sessionId);
-    if (!ok || sessionId !== currentPlaybackSessionId) return false;
+    if (!ok || sessionId !== currentPlaybackSessionId || (typeof document !== 'undefined' && document.hidden)) return false;
 
     // Pause before meaning translation
     await waitMs(500);
-    if (sessionId !== currentPlaybackSessionId) return false;
+    if (sessionId !== currentPlaybackSessionId || (typeof document !== 'undefined' && document.hidden)) return false;
 
     // -------------------------------------------------------------
     // STEP 4: Punjabi Commentary: "ਮਤਲਬ, [ਪੰਜਾਬੀ ਵਾਕ]"
@@ -559,7 +578,7 @@ export async function playTeacherLesson(
     const cleanedExamplePa = cleanPunjabiSpeechText(options.example_pa);
     const punjabiExamplePhrase = `ਮਤਲਬ, ${cleanedExamplePa}`;
     ok = await speakUtterance(punjabiExamplePhrase, 'pa', punjabiFixedRate, 1.0, sessionId);
-    if (!ok || sessionId !== currentPlaybackSessionId) return false;
+    if (!ok || sessionId !== currentPlaybackSessionId || (typeof document !== 'undefined' && document.hidden)) return false;
 
     options.onStepChange?.('idle');
     notifyListeners(false);

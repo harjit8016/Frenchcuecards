@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "visitors": {
+      "title": "Visitors",
+      "description": "Unique app users and learning sessions for usage analytics",
+      "properties": {
+        "visitorId": { "type": "string", "description": "Unique client identifier" },
+        "firstSeen": { "type": "string", "format": "date-time" },
+        "lastSeen": { "type": "string", "format": "date-time" },
+        "visitCount": { "type": "number" },
+        "currentLevel": { "type": "string" },
+        "totalWordsLearned": { "type": "number" },
+        "savedCount": { "type": "number" },
+        "userAgent": { "type": "string" }
+      },
+      "required": ["visitorId", "lastSeen"]
+    },
+    "analytics_events": {
+      "title": "Analytics Events",
+      "description": "Granular user action events (swipes, audio plays, level changes)",
+      "properties": {
+        "visitorId": { "type": "string" },
+        "eventName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["visitorId", "eventName", "timestamp"]
+    },
+    "app_metrics": {
+      "title": "App Metrics",
+      "description": "Aggregated stats for app usage",
+      "properties": {
+        "totalVisitors": { "type": "number" },
+        "totalAudioPlays": { "type": "number" },
+        "totalSwipes": { "type": "number" }
+      }
+    }
+  }
+}

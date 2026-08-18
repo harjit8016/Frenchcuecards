@@ -1,7 +1,7 @@
 {
-  "name": "French Kiu — Vocabulary Flashcards",
-  "short_name": "French Kiu",
-  "description": "Learn French vocabulary through swipeable flashcards with audio pronunciation and Punjabi translations.",
+  "name": "French Vira — Vocabulary Flashcards",
+  "short_name": "French Vira",
+  "description": "Learn French vocabulary through swipeable reels and flashcards with audio pronunciation and Punjabi translations for Canada PR.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#002270",
@@ -10,7 +10,7 @@
   "icons": [
     {
       "src": "/icon.svg",
-      "sizes": "any",
+      "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }

@@ -42,7 +42,7 @@ export const TeacherAdCard: React.FC<TeacherAdCardProps> = ({
   const handleShareLink = async (e: React.MouseEvent) => {
     e.stopPropagation();
     triggerHaptic('light');
-    const shareText = `🇫🇷 ਫ੍ਰੈਂਚ ਸਿੱਖਣ ਲਈ ਇੰਸਟਾਗ੍ਰਾਮ ਅਤੇ ਆਫੀਸ਼ੀਅਲ ਪ੍ਰੋਫਾਈਲ ਨਾਲ ਜੁੜੋ:\n${ad.linkUrl}\n\nFrench Kiu`;
+    const shareText = `🇫🇷 ਫ੍ਰੈਂਚ ਸਿੱਖਣ ਲਈ ਇੰਸਟਾਗ੍ਰਾਮ ਅਤੇ ਆਫੀਸ਼ੀਅਲ ਪ੍ਰੋਫਾਈਲ ਨਾਲ ਜੁੜੋ:\n${ad.linkUrl}\n\nFrench Vira — ਫ੍ਰੈਂਚ ਵੀਰਾ`;
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(shareText);
       setCopied(true);

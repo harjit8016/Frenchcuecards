@@ -1,5 +1,5 @@
-// Service Worker for French Kiu PWA
-const CACHE_NAME = 'french-kiu-v1.0.0';
+// Service Worker for French Vira PWA
+const CACHE_NAME = 'french-vira-v1.1.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

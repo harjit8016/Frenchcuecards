@@ -1,33 +1,34 @@
-import { CEFRLevel, FeedCardItem, LevelMetadata, TeacherAdCard, VocabularyWord } from '../types';
+import { CEFRLevel, FeedCardItem, LevelMetadata, TeacherAdCard, VocabularyWord, WordCategory } from '../types';
+import { GUIDE_VOCABULARY } from './guideVocabulary';
 
 export const LEVEL_METADATA: Record<CEFRLevel, LevelMetadata> = {
   A1: {
     level: 'A1',
     title: 'Beginner',
     punjabiTitle: 'ਮੁੱਢਲਾ ਪੱਧਰ',
-    description: 'Everyday greetings, family, question words & core verbs',
-    count: 36,
+    description: 'Everyday greetings, -moi commands, questions, pronouns & core verbs',
+    count: 65,
   },
   A2: {
     level: 'A2',
     title: 'Elementary',
     punjabiTitle: 'ਮੁਢਲੀ ਜਾਣਕਾਰੀ',
-    description: 'Irregular verbs, connectors, daily routine & conversation',
-    count: 24,
+    description: 'Accents, pronouns, indefinite adverbs & TEF/TCF starter reactions',
+    count: 42,
   },
   B1: {
     level: 'B1',
     title: 'Intermediate',
     punjabiTitle: 'ਵਿਚਕਾਰਲਾ ਪੱਧਰ',
-    description: 'Work, travel, logical connectors, opinions & feelings',
-    count: 18,
+    description: 'Work, travel, logical connectors, opinions & TEF debate phrases',
+    count: 32,
   },
   B2: {
     level: 'B2',
     title: 'Upper Intermediate',
     punjabiTitle: 'ਉੱਨਤ ਵਿਚਕਾਰਲਾ',
-    description: 'Complex sentence structures, spontaneous fluency & debate',
-    count: 14,
+    description: 'Formal reasoning, TEF/TCF essay connectors & fluency',
+    count: 22,
   },
   C1: {
     level: 'C1',
@@ -45,7 +46,7 @@ export const LEVEL_METADATA: Record<CEFRLevel, LevelMetadata> = {
   },
 };
 
-export const VOCABULARY_DATA: VocabularyWord[] = [
+const BASE_VOCABULARY_DATA: VocabularyWord[] = [
   // =========================================================================
   // A1: FOUNDATIONS, FAMILY, QUESTIONS, AUXILIARY VERBS & CONNECTORS
   // =========================================================================
@@ -1285,6 +1286,47 @@ export const VOCABULARY_DATA: VocabularyWord[] = [
   },
 ];
 
+const CATEGORY_PRIORITY: Record<string, number> = {
+  greetings: 10,
+  family: 20,
+  pronouns: 30,
+  verbs: 40,
+  questions: 50,
+  connectors: 60,
+  accents: 70,
+  exam: 80,
+  grammar: 90,
+  general: 100,
+};
+
+function sortWordList(words: VocabularyWord[]): VocabularyWord[] {
+  return [...words].sort((a, b) => {
+    // 1. Level order
+    const levelOrder: Record<CEFRLevel, number> = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
+    const levelDiff = (levelOrder[a.level] || 99) - (levelOrder[b.level] || 99);
+    if (levelDiff !== 0) return levelDiff;
+
+    // 2. Difficulty weight (easy first)
+    const diffWeight: Record<string, number> = { easy: 1, medium: 2, hard: 3 };
+    const diffA = a.difficulty ? diffWeight[a.difficulty] : 2;
+    const diffB = b.difficulty ? diffWeight[b.difficulty] : 2;
+    if (diffA !== diffB) return diffA - diffB;
+
+    // 3. Category priority
+    const catA = a.category ? (CATEGORY_PRIORITY[a.category] || 50) : 50;
+    const catB = b.category ? (CATEGORY_PRIORITY[b.category] || 50) : 50;
+    if (catA !== catB) return catA - catB;
+
+    // 4. Custom order index
+    return (a.orderIndex || 0) - (b.orderIndex || 0);
+  });
+}
+
+export const VOCABULARY_DATA: VocabularyWord[] = sortWordList([
+  ...GUIDE_VOCABULARY,
+  ...BASE_VOCABULARY_DATA,
+]);
+
 export function getWordsByLevel(level: CEFRLevel): VocabularyWord[] {
   return VOCABULARY_DATA.filter((w) => w.level === level);
 }
@@ -1294,7 +1336,7 @@ export function getWordsByCategory(category: string): VocabularyWord[] {
   return VOCABULARY_DATA.filter((w) => w.category === category);
 }
 
-export function getAvailableCategoriesForLevel(level: CEFRLevel): ('all' | 'verbs' | 'questions' | 'family' | 'connectors' | 'grammar')[] {
+export function getAvailableCategoriesForLevel(level: CEFRLevel): WordCategory[] {
   const wordsInLevel = VOCABULARY_DATA.filter((w) => w.level === level);
   const categoriesPresent = new Set<string>();
   
@@ -1304,11 +1346,15 @@ export function getAvailableCategoriesForLevel(level: CEFRLevel): ('all' | 'verb
     }
   });
 
-  const validOrder: ('verbs' | 'questions' | 'family' | 'connectors' | 'grammar')[] = [
+  const validOrder: WordCategory[] = [
+    'greetings',
     'verbs',
+    'pronouns',
+    'connectors',
+    'exam',
     'questions',
     'family',
-    'connectors',
+    'accents',
     'grammar',
   ];
 

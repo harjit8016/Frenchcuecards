@@ -14,10 +14,12 @@ import { CategoryChips } from './components/CategoryChips';
 import { Flashcard } from './components/Flashcard';
 import { ReelFeed } from './components/ReelFeed';
 import { Header } from './components/Header';
+import { AnalyticsModal } from './components/AnalyticsModal';
 import { NetworkStatusBanner } from './components/NetworkStatusBanner';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { speakFrench, stopSpeaking } from './utils/speech';
 import { triggerHaptic } from './utils/haptics';
+import { recordUserSession, trackEvent } from './utils/analytics';
 
 export default function App() {
   const networkStatus = useNetworkStatus();
@@ -35,7 +37,47 @@ export default function App() {
   
   // Single Source of Truth for active word position across both Reel and Deck layouts
   const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [autoPlayAudio, setAutoPlayAudio] = useState<boolean>(true);
+  const [autoPlayAudio, setAutoPlayAudio] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('french_kiu_audio_enabled');
+      if (saved !== null) {
+        return saved === 'true';
+      }
+    } catch {
+      // fallback
+    }
+    return true;
+  });
+
+  const handleToggleAutoPlay = useCallback((enabled?: boolean) => {
+    setAutoPlayAudio((prev) => {
+      const next = enabled !== undefined ? enabled : !prev;
+      try {
+        localStorage.setItem('french_kiu_audio_enabled', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+
+  // Top-level tab visibility safeguard: stop all speech when user minimizes tab or locks phone
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopSpeaking();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', handleVisibility);
+    window.addEventListener('blur', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', handleVisibility);
+      window.removeEventListener('blur', handleVisibility);
+    };
+  }, []);
 
   // Saved / Bookmarked Words State (persisted in localStorage)
   const [savedWordsMap, setSavedWordsMap] = useState<Record<string, boolean>>(() => {
@@ -49,10 +91,16 @@ export default function App() {
   });
   const [showSavedOnly, setShowSavedOnly] = useState<boolean>(false);
   const [showControls, setShowControls] = useState<boolean>(true);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState<boolean>(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-hide controls helper
-  const resetControlsTimeout = useCallback((durationMs: number = 2500) => {
+  // Initialize Analytics & Record User Session
+  useEffect(() => {
+    recordUserSession(selectedLevel);
+  }, []);
+
+  // Auto-hide controls helper with generous interactive duration (10 seconds)
+  const resetControlsTimeout = useCallback((durationMs: number = 10000) => {
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
@@ -62,9 +110,9 @@ export default function App() {
     }, durationMs);
   }, []);
 
-  // Initial auto-hide on load
+  // Initial auto-hide with ample time on load (12 seconds)
   useEffect(() => {
-    resetControlsTimeout(3000);
+    resetControlsTimeout(12000);
     return () => {
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
@@ -80,7 +128,8 @@ export default function App() {
     setShowControls((prev) => {
       const next = !prev;
       if (next) {
-        resetControlsTimeout(3000);
+        // Give 12 seconds of open interaction time
+        resetControlsTimeout(12000);
       }
       return next;
     });
@@ -89,7 +138,8 @@ export default function App() {
   // Toggle Save / Bookmark for any word
   const handleToggleSaveWord = useCallback((id: string) => {
     setSavedWordsMap((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
+      const isSaving = !prev[id];
+      const next = { ...prev, [id]: isSaving };
       if (!next[id]) {
         delete next[id];
       }
@@ -98,6 +148,7 @@ export default function App() {
       } catch {
         // ignore
       }
+      trackEvent('word_saved', { wordId: id, action: isSaving ? 'save' : 'unsave' });
       return next;
     });
   }, []);
@@ -120,7 +171,11 @@ export default function App() {
   // Toggle showSavedOnly filter
   const handleToggleShowSaved = () => {
     stopSpeaking();
-    setShowSavedOnly((prev) => !prev);
+    setShowSavedOnly((prev) => {
+      const next = !prev;
+      trackEvent('toggle_saved_filter', { showSaved: next });
+      return next;
+    });
     setCurrentIndex(0);
   };
 
@@ -133,9 +188,10 @@ export default function App() {
   // Level selector handler - resets deck and safely updates category
   const handleSelectLevel = (level: CEFRLevel) => {
     stopSpeaking();
-    resetControlsTimeout(2500);
+    resetControlsTimeout(8000);
     setShowSavedOnly(false);
     setSelectedLevel(level);
+    trackEvent('level_selected', { level });
     const newAvailable = getAvailableCategoriesForLevel(level);
     if (selectedCategory !== 'all' && !newAvailable.includes(selectedCategory)) {
       setSelectedCategory('all');
@@ -146,9 +202,10 @@ export default function App() {
   // Category selector handler
   const handleSelectCategory = (cat: WordCategory) => {
     stopSpeaking();
-    resetControlsTimeout(2500);
+    resetControlsTimeout(8000);
     setShowSavedOnly(false);
     setSelectedCategory(cat);
+    trackEvent('category_selected', { category: cat, level: selectedLevel });
     setCurrentIndex(0);
   };
 
@@ -161,12 +218,14 @@ export default function App() {
     setSelectedLevel(nextLvl);
     setSelectedCategory('all');
     setCurrentIndex(0);
+    trackEvent('level_advanced', { fromLevel: selectedLevel, toLevel: nextLvl });
   }, [selectedLevel]);
 
   // Mode Switcher (Deck <-> Reels) preserving the exact same word position
   const handleModeChange = (newMode: AppMode) => {
     stopSpeaking();
     setMode(newMode);
+    trackEvent('mode_changed', { mode: newMode });
     try {
       localStorage.setItem('french_kiu_mode', newMode);
     } catch {
@@ -178,6 +237,11 @@ export default function App() {
   const handleSwipe = useCallback(
     (direction: 'left' | 'right') => {
       stopSpeaking();
+      trackEvent('card_swipe', {
+        direction,
+        level: selectedLevel,
+        word: currentCard?.word || '',
+      });
       setCurrentIndex((prev) => {
         const next = prev + 1;
         if (next >= words.length) {
@@ -189,7 +253,7 @@ export default function App() {
         return next;
       });
     },
-    [words.length, handleNextLevel, showSavedOnly]
+    [words.length, handleNextLevel, showSavedOnly, selectedLevel, currentCard]
   );
 
   // Restart current level
@@ -233,7 +297,16 @@ export default function App() {
           if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
         }}
         onMouseLeave={() => {
-          if (showControls) resetControlsTimeout(2500);
+          if (showControls) resetControlsTimeout(8000);
+        }}
+        onTouchStart={() => {
+          if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+        }}
+        onTouchEnd={() => {
+          if (showControls) resetControlsTimeout(8000);
+        }}
+        onPointerDown={() => {
+          if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
         }}
       >
         <Header
@@ -244,6 +317,10 @@ export default function App() {
           onToggleShowSaved={handleToggleShowSaved}
           showControls={showControls}
           onToggleControls={handleToggleControls}
+          onOpenAnalytics={() => {
+            stopSpeaking();
+            setShowAnalyticsModal(true);
+          }}
         />
         <AnimatePresence initial={false}>
           {!showSavedOnly && showControls && (
@@ -297,13 +374,7 @@ export default function App() {
             onSelectLevel={handleSelectLevel}
             onNextLevel={handleNextLevel}
             autoPlayAudio={autoPlayAudio}
-            onToggleAutoPlay={(enabled) => {
-              if (enabled !== undefined) {
-                setAutoPlayAudio(enabled);
-              } else {
-                setAutoPlayAudio((prev) => !prev);
-              }
-            }}
+            onToggleAutoPlay={handleToggleAutoPlay}
             savedWordsMap={savedWordsMap}
             onToggleSaveWord={handleToggleSaveWord}
             showSavedOnly={showSavedOnly}
@@ -409,6 +480,12 @@ export default function App() {
           <span>← ਅਗਲਾ ਸ਼ਬਦ ਦੇਖਣ ਲਈ ਸਵਾਈਪ ਕਰੋ (Swipe card) →</span>
         </footer>
       )}
+
+      {/* Live Free Tier Analytics & Stats Modal */}
+      <AnalyticsModal
+        isOpen={showAnalyticsModal}
+        onClose={() => setShowAnalyticsModal(false)}
+      />
     </div>
   );
 }

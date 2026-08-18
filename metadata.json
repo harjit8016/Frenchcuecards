@@ -1,6 +1,6 @@
 {
-  "name": "French Kiu",
-  "description": "Mobile-first French vocabulary flashcard PWA with audio pronunciation and Punjabi translations in Khalsa colors.",
+  "name": "French Vira",
+  "description": "Mobile-first French vocabulary flashcard PWA with audio pronunciation and Punjabi translations in Khalsa colors for Canada PR and TEF learners.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

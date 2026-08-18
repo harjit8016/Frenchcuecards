@@ -46,9 +46,9 @@ export const Flashcard: React.FC<FlashcardProps> = ({
     setIsFlipped(false);
     let isMounted = true;
 
-    if (autoPlayAudio) {
+    if (autoPlayAudio && typeof document !== 'undefined' && !document.hidden) {
       const timer = setTimeout(async () => {
-        if (!isMounted) return;
+        if (!isMounted || (typeof document !== 'undefined' && document.hidden)) return;
         setIsPlayingAudio(true);
         await speakFrench(card.word, 0.85);
         if (isMounted) setIsPlayingAudio(false);
@@ -155,12 +155,12 @@ export const Flashcard: React.FC<FlashcardProps> = ({
           <div className="absolute inset-0 backface-hidden rounded-3xl bg-white border-2 border-[#FFD700] shadow-lg flex flex-col justify-between p-5 sm:p-6 overflow-hidden">
             {/* Top decorative accent bar */}
             <div className="w-full flex items-center justify-between border-b border-slate-200 pb-2.5 shrink-0">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="px-2.5 py-0.5 rounded-lg bg-[#FF9933] text-[#00174D] text-[11px] font-black tracking-wider uppercase border border-[#FFD700]">
                   {card.level}
                 </span>
                 {card.part_of_speech && (
-                  <span className="text-[11px] font-bold text-[#002270] bg-[#FF9933]/15 px-2.5 py-0.5 rounded-lg border border-[#FF9933]/40">
+                  <span className="text-[11px] font-bold text-[#002270] bg-[#FF9933]/15 px-2 py-0.5 rounded-lg border border-[#FF9933]/40">
                     {card.part_of_speech}
                   </span>
                 )}

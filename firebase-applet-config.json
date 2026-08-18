@@ -1,0 +1,11 @@
+{
+  "projectId": "frenchvira",
+  "appId": "1:883674159342:web:3dff57996995f02935bbff",
+  "apiKey": "AIzaSyDWtkKlOK8Qx_bwBXHndocniPE8J4MoHZY",
+  "authDomain": "frenchvira.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "frenchvira.firebasestorage.app",
+  "messagingSenderId": "883674159342",
+  "measurementId": "G-CZDXW6KL92",
+  "recaptchaSiteKey": ""
+}

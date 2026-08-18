@@ -149,6 +149,79 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
     }
   }, []);
 
+  // Synchronize autoPlayAudio state from props
+  useEffect(() => {
+    isAutoPlayRef.current = autoPlayAudio;
+    if (!autoPlayAudio) {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      if (interruptTimeoutRef.current) clearTimeout(interruptTimeoutRef.current);
+      loopActiveRef.current = false;
+      stopSpeaking();
+      setIsNarrating(false);
+      setTeacherStep('idle');
+    }
+  }, [autoPlayAudio]);
+
+  // Tab Visibility & Page Background Guard: immediately cancel speech if user leaves tab or locks screen
+  useEffect(() => {
+    const handleBackground = () => {
+      if (document.hidden) {
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        if (interruptTimeoutRef.current) clearTimeout(interruptTimeoutRef.current);
+        loopActiveRef.current = false;
+        stopSpeaking();
+        setIsNarrating(false);
+        setTeacherStep('idle');
+      }
+    };
+
+    const handlePageHide = () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      if (interruptTimeoutRef.current) clearTimeout(interruptTimeoutRef.current);
+      loopActiveRef.current = false;
+      stopSpeaking();
+      setIsNarrating(false);
+      setTeacherStep('idle');
+    };
+
+    document.addEventListener('visibilitychange', handleBackground);
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('blur', handleBackground);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleBackground);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('blur', handleBackground);
+    };
+  }, []);
+
+  // Idle Inactivity Watchdog: Automatically pause audio if user leaves app untouched for 3 minutes
+  useEffect(() => {
+    let idleTimer: number | null = null;
+
+    const resetIdleTimer = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => {
+        // Pause infinite loop after 3 minutes without user touch/scroll
+        if (loopActiveRef.current) {
+          loopActiveRef.current = false;
+          stopSpeaking();
+          setIsNarrating(false);
+          setTeacherStep('idle');
+        }
+      }, 3 * 60 * 1000);
+    };
+
+    const userActivityEvents = ['touchstart', 'pointerdown', 'keydown', 'scroll'];
+    userActivityEvents.forEach((ev) => window.addEventListener(ev, resetIdleTimer, { passive: true }));
+    resetIdleTimer();
+
+    return () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      userActivityEvents.forEach((ev) => window.removeEventListener(ev, resetIdleTimer));
+    };
+  }, []);
+
   // Sync with initial currentIndex when entering ReelFeed
   useEffect(() => {
     if (currentIndex >= 0 && currentIndex < words.length) {
@@ -201,7 +274,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
         // Half a second (500ms) pause when scrolling to next/prev card
         if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
         scrollTimeoutRef.current = window.setTimeout(() => {
-          if (isAutoPlayRef.current) {
+          if (isAutoPlayRef.current && typeof document !== 'undefined' && !document.hidden) {
             startTeacherLoopForIndex(closestIdx);
           }
         }, 500);
@@ -210,11 +283,13 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
 
     container.addEventListener('scroll', handleScroll, { passive: true });
 
-    // Initial play on mount if auto-play is enabled
-    if (isAutoPlayRef.current && words.length > 0) {
+    // Initial play on mount ONLY if auto-play is enabled AND tab is visible
+    if (isAutoPlayRef.current && words.length > 0 && typeof document !== 'undefined' && !document.hidden) {
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
       scrollTimeoutRef.current = window.setTimeout(() => {
-        startTeacherLoopForIndex(activeIndexRef.current);
+        if (isAutoPlayRef.current && typeof document !== 'undefined' && !document.hidden) {
+          startTeacherLoopForIndex(activeIndexRef.current);
+        }
       }, 400);
     }
 
@@ -298,7 +373,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
   const handleShare = async (word: VocabularyWord, e: React.MouseEvent) => {
     e.stopPropagation();
     triggerHaptic('light');
-    const textToShare = `🇫🇷 ${word.word} (${word.level}) - ${word.meaning_pa}\n"${word.example_fr}"\n${word.example_pa}\n\nFrench Kiu`;
+    const textToShare = `🇫🇷 ${word.word} (${word.level}) - ${word.meaning_pa}\n"${word.example_fr}"\n${word.example_pa}\n\nFrench Vira — ਫ੍ਰੈਂਚ ਵੀਰਾ`;
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(textToShare);
       setCopiedId(word.id);
@@ -364,7 +439,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
     ) {
       setTeacherStep('idle');
 
-      // Half-second (500ms) pause before auto-restarting the speaker if unmuted
+      // Generous pause (1200ms) before auto-restarting the speaker if unmuted
       if (isAutoPlayRef.current) {
         interruptTimeoutRef.current = window.setTimeout(() => {
           if (
@@ -374,7 +449,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
           ) {
             startTeacherLoopForIndex(cardIndex);
           }
-        }, 500);
+        }, 1200);
       } else {
         setIsNarrating(false);
       }
