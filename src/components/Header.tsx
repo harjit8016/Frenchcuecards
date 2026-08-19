@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppMode } from '../types';
 import { ModeSwitch } from './ModeSwitch';
-import { Bookmark, SlidersHorizontal, ChevronUp, BarChart2 } from 'lucide-react';
+import { Bookmark, SlidersHorizontal, ChevronUp } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 
 interface HeaderProps {
@@ -12,7 +12,6 @@ interface HeaderProps {
   onToggleShowSaved: () => void;
   showControls: boolean;
   onToggleControls: () => void;
-  onOpenAnalytics?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,15 +22,14 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleShowSaved,
   showControls,
   onToggleControls,
-  onOpenAnalytics,
 }) => {
   return (
-    <header className="w-full pt-2 pb-1 px-3 max-w-md mx-auto flex items-center justify-between gap-1.5 select-none">
-      <div className="flex items-center gap-1.5 shrink-0">
+    <header className="w-full pt-2 pb-1.5 px-3 sm:px-4 max-w-md sm:max-w-lg md:max-w-xl mx-auto flex items-center justify-between gap-2 select-none">
+      <div className="flex items-center gap-2 shrink-0">
         <ModeSwitch mode={mode} onModeChange={onModeChange} />
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         {/* Toggle Controls (Auto-hideable navigation bar) */}
         {!showSavedOnly && (
           <button
@@ -41,36 +39,20 @@ export const Header: React.FC<HeaderProps> = ({
               triggerHaptic('selection');
               onToggleControls();
             }}
-            className={`px-2.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 border active:scale-95 transition-colors ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border active:scale-95 transition-all shadow-sm ${
               showControls
-                ? 'bg-[#002270] text-[#FFD700] border-[#FFD700]/40'
+                ? 'bg-[#002270] text-[#FFD700] border-[#FFD700]/40 ring-1 ring-[#FFD700]/30'
                 : 'bg-[#002270] text-[#88B0FF] border-[#0033A0] hover:text-white hover:border-[#88B0FF]/40'
             }`}
             title={showControls ? 'ਕੰਟਰੋਲ ਛੁਪਾਓ (Hide Controls)' : 'ਕੰਟਰੋਲ ਦਿਖਾਓ (Show Controls)'}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 shrink-0 opacity-80" />
+            <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 opacity-80" />
             <span className="font-gurmukhi text-[11px] sm:text-xs">ਕੰਟਰੋਲ</span>
             <ChevronUp
-              className={`w-3 h-3 transition-transform duration-200 opacity-80 ${
+              className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform duration-200 opacity-80 ${
                 showControls ? 'rotate-0' : 'rotate-180'
               }`}
             />
-          </button>
-        )}
-
-        {/* Live Analytics Button */}
-        {onOpenAnalytics && (
-          <button
-            type="button"
-            id="btn-open-analytics"
-            onClick={() => {
-              triggerHaptic('selection');
-              onOpenAnalytics();
-            }}
-            className="p-1.5 rounded-xl bg-[#002270] text-[#88B0FF] border border-[#0033A0] hover:text-[#FFD700] hover:border-[#FFD700]/50 active:scale-95 transition-colors"
-            title="ਲਾਈਵ ਐਨਾਲਿਟਿਕਸ (Live Analytics Dashboard)"
-          >
-            <BarChart2 className="w-3.5 h-3.5" />
           </button>
         )}
 
@@ -82,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
             triggerHaptic('selection');
             onToggleShowSaved();
           }}
-          className={`px-2.5 py-1.5 rounded-xl font-black text-[11px] sm:text-xs transition-all flex items-center gap-1.5 border active:scale-95 shadow-sm ${
+          className={`px-2.5 sm:px-3 py-1.5 rounded-xl font-black text-[11px] sm:text-xs transition-all flex items-center gap-1.5 border active:scale-95 shadow-sm ${
             showSavedOnly
               ? 'bg-[#FF9933] text-[#00174D] border-[#FFD700] ring-2 ring-[#FF9933]/50'
               : 'bg-[#002270] text-[#88B0FF] border-[#0033A0] hover:text-white hover:border-[#FF9933]/50'
@@ -90,13 +72,13 @@ export const Header: React.FC<HeaderProps> = ({
           title={showSavedOnly ? 'ਸਾਰੇ ਸ਼ਬਦ ਦੇਖੋ' : 'ਸੇਵ ਕੀਤੇ ਸ਼ਬਦ ਦੇਖੋ'}
         >
           <Bookmark
-            className={`w-3.5 h-3.5 ${
+            className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
               showSavedOnly || savedCount > 0 ? 'fill-current' : ''
             }`}
           />
           <span className="font-gurmukhi">ਸੇਵ</span>
           <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+            className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-mono font-bold leading-none ${
               showSavedOnly
                 ? 'bg-[#00174D] text-[#FFD700]'
                 : 'bg-[#00174D]/80 text-[#88B0FF]'

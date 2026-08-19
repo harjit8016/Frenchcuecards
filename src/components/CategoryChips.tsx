@@ -43,7 +43,7 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
   };
 
   return (
-    <div className="w-full max-w-md mx-auto px-3 py-1.5 overflow-x-auto no-scrollbar flex items-center gap-1.5 bg-[#001438] transition-all">
+    <div className="w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto px-3 sm:px-4 py-1.5 overflow-x-auto no-scrollbar flex items-center gap-1.5 bg-[#001438] transition-all">
       {displayedCategories.map((cat) => {
         const isSelected = selectedCategory === cat.id;
         return (

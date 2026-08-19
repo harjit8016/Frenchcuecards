@@ -290,7 +290,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
         if (isAutoPlayRef.current && typeof document !== 'undefined' && !document.hidden) {
           startTeacherLoopForIndex(activeIndexRef.current);
         }
-      }, 400);
+      }, 150);
     }
 
     return () => {
@@ -486,7 +486,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full max-w-md mx-auto overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-[#001438] border-x border-[#0033A0] shadow-2xl overscroll-contain touch-pan-y"
+      className="relative w-full h-full max-w-md sm:max-w-lg md:max-w-xl mx-auto overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-[#001438] border-x border-[#0033A0] shadow-2xl overscroll-contain touch-pan-y"
     >
       {words.map((word, index) => {
         const isMastered = savedWordsMap ? Boolean(savedWordsMap[word.id]) : false;
@@ -498,18 +498,18 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
             key={word.id}
             data-index={index}
             data-word-id={word.id}
-            className="reel-item relative w-full h-full snap-start snap-always flex flex-col justify-center items-center p-2.5 sm:p-3.5 select-none bg-[#001438] overflow-hidden"
+            className="reel-item relative w-full h-full snap-start snap-always flex flex-col justify-center items-center p-2 sm:p-3 md:p-4 select-none bg-[#001438] overflow-hidden"
           >
             {/* FLAT SOLID WHITE CARD CONTAINER */}
-            <div className="relative w-full max-w-[370px] sm:max-w-[395px] h-[94%] max-h-[560px] min-h-[400px] rounded-3xl bg-white text-[#002270] border-2 border-[#FFD700] p-4 sm:p-5 flex flex-col justify-between overflow-hidden shadow-lg">
+            <div className="relative w-full max-w-[360px] sm:max-w-[420px] md:max-w-[480px] h-[95%] max-h-[580px] min-h-[350px] rounded-3xl bg-white text-[#002270] border-2 border-[#FFD700] p-3.5 sm:p-5 flex flex-col justify-between overflow-hidden shadow-lg">
               {/* Card Header Info Bar */}
               <div className="w-full flex items-center justify-between border-b border-slate-200 pb-2 shrink-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="px-2.5 py-0.5 rounded-lg bg-[#FF9933] text-[#00174D] text-[11px] font-black tracking-wider uppercase border border-[#FFD700]">
+                  <span className="px-2.5 py-0.5 rounded-lg bg-[#FF9933] text-[#00174D] text-[11px] sm:text-xs font-black tracking-wider uppercase border border-[#FFD700]">
                     {word.level}
                   </span>
                   {word.part_of_speech && (
-                    <span className="text-[11px] font-bold text-[#002270] bg-[#FF9933]/15 px-2.5 py-0.5 rounded-lg border border-[#FF9933]/40">
+                    <span className="text-[11px] sm:text-xs font-bold text-[#002270] bg-[#FF9933]/15 px-2.5 py-0.5 rounded-lg border border-[#FF9933]/40">
                       {word.part_of_speech}
                     </span>
                   )}
@@ -517,14 +517,14 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
 
                 {/* Progress counter */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-slate-500 font-mono">
+                  <span className="text-xs sm:text-sm font-black text-slate-500 font-mono">
                     {index + 1} / {words.length}
                   </span>
                 </div>
               </div>
 
               {/* MAIN CONTENT STAGE (CLICKABLE SECTIONS WITH AUTO-INTERRUPTION & 500MS RESUME) */}
-              <div className="my-auto flex flex-col justify-center space-y-2.5 sm:space-y-3 py-1 w-full pr-14 sm:pr-16">
+              <div className="my-auto flex flex-col justify-center space-y-2 sm:space-y-3 py-1 w-full pr-12 sm:pr-14 md:pr-16 overflow-y-auto no-scrollbar">
                 {/* 1. French Word Section */}
                 <div
                   onClick={(e) => handleSectionClick('word_fr', word, index, e)}
@@ -536,18 +536,18 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[10px] font-black text-[#0033A0] uppercase tracking-widest block">
+                    <span className="text-[10px] sm:text-xs font-black text-[#0033A0] uppercase tracking-widest block">
                       🇫🇷 ਫ੍ਰੈਂਚ ਸ਼ਬਦ · French Word
                     </span>
-                    <span className="text-[9px] font-bold text-[#00174D] bg-[#FF9933]/30 px-1.5 py-0.5 rounded">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-[#00174D] bg-[#FF9933]/30 px-1.5 py-0.5 rounded">
                       ਸੁਣੋ 🔊
                     </span>
                   </div>
-                  <h2 className="text-3xl sm:text-4xl font-black text-[#002270] font-brand tracking-tight leading-tight">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#002270] font-brand tracking-tight leading-tight">
                     {word.word}
                   </h2>
                   {word.phonetic && (
-                    <p className="text-xs sm:text-sm font-bold text-[#FF9933] tracking-wide font-mono mt-0.5">
+                    <p className="text-xs sm:text-sm md:text-base font-bold text-[#FF9933] tracking-wide font-mono mt-0.5">
                       /{word.phonetic}/
                     </p>
                   )}
@@ -557,22 +557,22 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                 <div
                   onClick={(e) => handleSectionClick('meaning_pa', word, index, e)}
                   title="ਕਲਿੱਕ ਕਰਕੇ ਪੰਜਾਬੀ ਅਰਥ ਸੁਣੋ"
-                  className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer active:scale-[0.99] ${
+                  className={`p-2.5 sm:p-3.5 rounded-2xl border transition-all cursor-pointer active:scale-[0.99] ${
                     currentStep === 'meaning_pa'
                       ? 'bg-[#FF9933]/30 border-[#FF9933] ring-2 ring-[#FF9933] scale-[1.01]'
                       : 'bg-[#FF9933]/10 border-[#FF9933]/40 hover:bg-[#FF9933]/20'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-black text-[#FF9933] uppercase tracking-widest flex items-center gap-1">
+                    <span className="text-[10px] sm:text-xs font-black text-[#FF9933] uppercase tracking-widest flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-[#FF9933] stroke-[2.5]" />
                       <span>ਪੰਜਾਬੀ ਅਰਥ · Punjabi Meaning</span>
                     </span>
-                    <span className="text-[9px] font-bold text-[#00174D] bg-[#FF9933] px-1.5 py-0.5 rounded">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-[#00174D] bg-[#FF9933] px-1.5 py-0.5 rounded">
                       ਸੁਣੋ 🔊
                     </span>
                   </div>
-                  <p className="text-2xl sm:text-3xl font-black text-[#002270] font-gurmukhi leading-snug tracking-tight">
+                  <p className="text-xl sm:text-2xl md:text-3xl font-black text-[#002270] font-gurmukhi leading-snug tracking-tight">
                     {word.meaning_pa}
                   </p>
                 </div>
@@ -588,16 +588,16 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#0033A0]">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#0033A0]">
                       ਉਦਾਹਰਣ · Example
                     </span>
-                    <span className="text-[9px] font-bold text-[#00174D] bg-[#FF9933] px-1.5 py-0.5 rounded">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-[#00174D] bg-[#FF9933] px-1.5 py-0.5 rounded">
                       ਸੁਣੋ 🔊
                     </span>
                   </div>
 
                   <p
-                    className={`text-sm sm:text-base font-bold italic leading-relaxed mb-1.5 font-brand transition-colors ${
+                    className={`text-xs sm:text-sm md:text-base font-bold italic leading-relaxed mb-1 font-brand transition-colors ${
                       currentStep === 'example_fr'
                         ? 'text-[#002270] underline decoration-[#FF9933] decoration-2'
                         : 'text-slate-800'
@@ -607,7 +607,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({
                   </p>
 
                   <p
-                    className={`text-sm sm:text-base font-semibold font-gurmukhi leading-relaxed border-t border-slate-200 pt-1.5 transition-colors ${
+                    className={`text-xs sm:text-sm md:text-base font-semibold font-gurmukhi leading-relaxed border-t border-slate-200 pt-1 transition-colors ${
                       currentStep === 'example_pa'
                         ? 'text-[#002270] font-bold'
                         : 'text-slate-600'

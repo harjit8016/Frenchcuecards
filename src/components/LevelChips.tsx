@@ -25,7 +25,7 @@ export const LevelChips: React.FC<LevelChipsProps> = ({
       aria-label="CEFR Proficiency Level"
       className="sticky top-0 z-30 w-full bg-[#00174D] border-b border-[#002B80] py-2 px-3 transition-colors"
     >
-      <div className="max-w-md mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
+      <div className="max-w-md sm:max-w-lg md:max-w-xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
         {CEFR_LEVELS.map((level) => {
           const isSelected = selectedLevel === level;
           return (

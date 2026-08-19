@@ -1,171 +1,206 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <!-- Background Gradient -->
+    <!-- Background Gradient (Rich Royal Khalsa Blue with subtle depth) -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0047AB"/>
-      <stop offset="60%" stop-color="#002D80"/>
-      <stop offset="100%" stop-color="#001C55"/>
+      <stop offset="0%" stop-color="#00469E"/>
+      <stop offset="45%" stop-color="#003580"/>
+      <stop offset="100%" stop-color="#00215E"/>
     </linearGradient>
 
-    <!-- Punjab Map Gold Gradient -->
-    <linearGradient id="punjabGold" x1="0%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" stop-color="#FFF066"/>
-      <stop offset="40%" stop-color="#FFCC00"/>
-      <stop offset="100%" stop-color="#E5A700"/>
+    <!-- Punjab Map Vibrant Golden Yellow Gradient -->
+    <linearGradient id="punjabYellow" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#FFF533"/>
+      <stop offset="35%" stop-color="#FFDD00"/>
+      <stop offset="85%" stop-color="#F2B705"/>
+      <stop offset="100%" stop-color="#D99B00"/>
     </linearGradient>
 
-    <!-- Maple Leaf Red Gradient with Emboss Feel -->
-    <linearGradient id="mapleRed" x1="20%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" stop-color="#FF2E3E"/>
-      <stop offset="50%" stop-color="#E60D1F"/>
-      <stop offset="100%" stop-color="#A8000C"/>
+    <!-- Punjab Map 3D Bevel Highlight -->
+    <linearGradient id="punjabHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFB3"/>
+      <stop offset="100%" stop-color="#FFD000"/>
     </linearGradient>
 
-    <!-- Cloud Gradient -->
+    <!-- Canadian Maple Leaf 3D Crimson Red Gradient -->
+    <radialGradient id="mapleRedGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#FF2438"/>
+      <stop offset="60%" stop-color="#E1061A"/>
+      <stop offset="100%" stop-color="#9E000F"/>
+    </radialGradient>
+
+    <!-- Cloud Soft White Gradient -->
     <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="100%" stop-color="#D7E5F5"/>
+      <stop offset="70%" stop-color="#F3F7FC"/>
+      <stop offset="100%" stop-color="#D2E3F4"/>
     </linearGradient>
 
-    <!-- Wheat Gold Gradient -->
+    <!-- Wheat Grain Gold -->
     <linearGradient id="wheatGold" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFE8A3"/>
-      <stop offset="50%" stop-color="#E5BE6C"/>
-      <stop offset="100%" stop-color="#A5792F"/>
+      <stop offset="0%" stop-color="#FFF2B8"/>
+      <stop offset="40%" stop-color="#E8C374"/>
+      <stop offset="100%" stop-color="#A87A2C"/>
     </linearGradient>
 
-    <!-- Wheat Leaf Green -->
-    <linearGradient id="wheatGreen" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6EDC88"/>
-      <stop offset="100%" stop-color="#2D8C47"/>
+    <!-- Wheat Green Leaves at Base -->
+    <linearGradient id="wheatGreen" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#80E89B"/>
+      <stop offset="50%" stop-color="#4CB86C"/>
+      <stop offset="100%" stop-color="#24783E"/>
     </linearGradient>
 
-    <!-- Drop Shadows -->
-    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/>
+    <!-- Soft Drop Shadow Filter for Elements -->
+    <filter id="elementShadow" x="-15%" y="-15%" width="135%" height="135%">
+      <feDropShadow dx="3" dy="8" stdDeviation="12" flood-color="#001138" flood-opacity="0.6"/>
     </filter>
-    <filter id="elementShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="2" dy="5" stdDeviation="6" flood-color="#000D2B" flood-opacity="0.5"/>
-    </filter>
-    <filter id="punjabOutlineGlow">
-      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#FFE57F" flood-opacity="0.8"/>
+
+    <!-- Deep Inset Bevel Shadow for 3D Maple Leaf & Map -->
+    <filter id="leafBevel" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="2" dy="6" stdDeviation="8" flood-color="#000E2B" flood-opacity="0.55"/>
     </filter>
   </defs>
 
-  <!-- Squircle App Icon Container -->
-  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
-  <!-- Subtle border stroke -->
-  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#2563EB" stroke-width="4" stroke-opacity="0.4"/>
+  <!-- ======================================================== -->
+  <!-- 0. BASE SQUIRCLE APP CONTAINER                           -->
+  <!-- ======================================================== -->
+  <!-- Outer squircle -->
+  <rect x="12" y="12" width="1000" height="1000" rx="224" ry="224" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle border bevel stroke -->
+  <rect x="14" y="14" width="996" height="996" rx="222" ry="222" fill="none" stroke="#1D68D8" stroke-width="6" stroke-opacity="0.55"/>
+  <rect x="20" y="20" width="984" height="984" rx="216" ry="216" fill="none" stroke="#00184A" stroke-width="4" stroke-opacity="0.4"/>
 
   <!-- ======================================================== -->
   <!-- 1. PUNJAB MAP (Top Left)                                  -->
   <!-- ======================================================== -->
   <g filter="url(#elementShadow)">
-    <!-- Outer boundary glow/stroke for Punjab map -->
-    <path d="M 215 48
-             C 219 44, 224 45, 227 50
-             C 230 55, 227 60, 220 63
-             C 210 68, 208 75, 214 83
-             C 225 96, 238 120, 245 138
-             C 250 150, 260 156, 268 152
-             C 275 148, 282 153, 287 162
-             C 292 173, 286 182, 280 188
-             C 272 195, 276 205, 286 211
-             C 295 217, 297 225, 293 234
-             C 287 246, 275 255, 262 262
-             C 248 270, 238 280, 234 295
-             C 230 306, 222 312, 212 310
-             C 202 308, 198 316, 198 325
-             C 197 332, 190 336, 182 334
-             C 174 330, 169 320, 163 322
-             C 156 325, 150 318, 146 308
-             C 142 298, 134 295, 122 296
-             C 105 298, 92 288, 86 272
-             C 80 256, 68 250, 54 250
-             C 45 250, 42 242, 48 235
-             C 55 226, 68 214, 76 200
-             C 88 178, 99 158, 102 135
-             C 104 116, 110 102, 125 94
-             C 138 87, 155 78, 170 70
-             C 188 60, 204 53, 215 48 Z"
-          fill="url(#punjabGold)"
-          stroke="#FFF89A"
-          stroke-width="5"
+    <!-- Base 3D Border Ridge for Punjab Map -->
+    <path d="M 416 88
+             C 426 78, 438 82, 442 96
+             C 446 108, 440 120, 426 128
+             C 406 138, 402 152, 414 170
+             C 434 196, 458 244, 474 282
+             C 484 306, 506 318, 522 310
+             C 536 302, 550 312, 560 330
+             C 570 352, 558 370, 546 382
+             C 530 398, 538 418, 558 430
+             C 576 442, 580 458, 572 476
+             C 560 500, 536 518, 510 532
+             C 482 548, 462 568, 454 598
+             C 446 620, 430 632, 410 628
+             C 390 624, 382 640, 382 658
+             C 380 672, 366 680, 350 676
+             C 334 668, 324 648, 312 652
+             C 298 658, 286 644, 278 624
+             C 270 604, 254 598, 230 600
+             C 196 604, 170 584, 158 552
+             C 146 520, 122 508, 94 508
+             C 76 508, 70 492, 82 478
+             C 96 460, 122 436, 138 408
+             C 162 364, 184 324, 190 278
+             C 194 240, 206 212, 236 196
+             C 262 182, 296 164, 326 148
+             C 362 128, 394 114, 416 88 Z"
+          fill="url(#punjabYellow)"
+          stroke="#FFF785"
+          stroke-width="12"
           stroke-linejoin="round"
           stroke-linecap="round"/>
-          
-    <!-- Punjab 3D bevel / ridge highlights -->
-    <path d="M 215 54 C 220 60, 210 75, 218 90 C 230 115, 248 145, 265 156 C 275 162, 280 178, 275 195 C 270 210, 280 225, 270 245 C 255 260, 240 270, 230 290"
+
+    <!-- Punjab Map 3D Inner Emboss Highlights -->
+    <path d="M 416 102
+             C 424 116, 410 148, 424 178
+             C 446 226, 480 286, 512 308
+             C 532 320, 542 352, 532 384
+             C 522 414, 542 444, 524 484
+             C 494 514, 464 534, 444 574"
           fill="none"
-          stroke="#FFEB7A"
-          stroke-width="3"
+          stroke="#FFFCC4"
+          stroke-width="7"
           stroke-linecap="round"
-          opacity="0.7"/>
+          opacity="0.75"/>
+
+    <!-- Subtle darker bevel ridge on the south-west edge -->
+    <path d="M 100 500 C 130 500, 150 514, 160 546 C 172 578, 198 596, 232 592 C 256 590, 272 596, 280 616"
+          fill="none"
+          stroke="#D49300"
+          stroke-width="6"
+          stroke-linecap="round"
+          opacity="0.5"/>
   </g>
 
   <!-- ======================================================== -->
-  <!-- 2. CLOUD & SNOWFLAKES (Top Right)                        -->
+  <!-- 2. CLOUD & 6 SNOWFLAKES (Top Right)                      -->
   <!-- ======================================================== -->
   <g filter="url(#elementShadow)">
-    <!-- Fluffy Cloud -->
-    <path d="M 370 144
-             L 435 144
-             A 26 26 0 0 0 455 106
-             A 34 34 0 0 0 418 56
-             A 42 42 0 0 0 350 72
-             A 30 30 0 0 0 322 108
-             A 26 26 0 0 0 338 144
+    <!-- Main Fluffy Cloud Shape -->
+    <path d="M 720 275
+             L 860 275
+             A 52 52 0 0 0 900 198
+             A 68 68 0 0 0 826 98
+             A 84 84 0 0 0 690 130
+             A 60 60 0 0 0 634 202
+             A 52 52 0 0 0 666 275
              Z"
           fill="url(#cloudGrad)"/>
-    <!-- Cloud base shadow/highlight -->
-    <path d="M 338 138 L 440 138 A 20 20 0 0 0 452 118 C 440 132, 350 134, 338 138 Z"
-          fill="#B8D0EB" opacity="0.6"/>
 
-    <!-- Snowflakes (Crisp Asterisks) -->
-    <!-- Row 1 -->
-    <g stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" fill="none">
-      <!-- Snowflake 1 -->
-      <g transform="translate(348, 172) scale(0.9)">
-        <line x1="0" y1="-12" x2="0" y2="12"/>
-        <line x1="-10.4" y1="-6" x2="10.4" y2="6"/>
-        <line x1="-10.4" y1="6" x2="10.4" y2="-6"/>
-        <circle cx="0" cy="0" r="2.5" fill="#FFFFFF"/>
+    <!-- Cloud Soft Bottom Shadow for 3D Puffy Depth -->
+    <path d="M 666 264
+             L 870 264
+             A 40 40 0 0 0 894 224
+             C 870 252, 690 256, 666 264 Z"
+          fill="#AECDEB" opacity="0.65"/>
+
+    <!-- 6 Crisp 6-Pointed Snowflakes (2 Staggered Rows) -->
+    <!-- Row 1 (Top: 3 Snowflakes) -->
+    <g stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" fill="none">
+      <!-- Snowflake 1 (Left) -->
+      <g transform="translate(696, 326) scale(1.15)">
+        <line x1="0" y1="-17" x2="0" y2="17"/>
+        <line x1="-14.7" y1="-8.5" x2="14.7" y2="8.5"/>
+        <line x1="-14.7" y1="8.5" x2="14.7" y2="-8.5"/>
+        <circle cx="0" cy="0" r="3.5" fill="#FFFFFF"/>
       </g>
-      <!-- Snowflake 2 -->
-      <g transform="translate(388, 170) scale(0.9)">
-        <line x1="0" y1="-12" x2="0" y2="12"/>
-        <line x1="-10.4" y1="-6" x2="10.4" y2="6"/>
-        <line x1="-10.4" y1="6" x2="10.4" y2="-6"/>
-        <circle cx="0" cy="0" r="2.5" fill="#FFFFFF"/>
+
+      <!-- Snowflake 2 (Center) -->
+      <g transform="translate(764, 322) scale(1.15)">
+        <line x1="0" y1="-17" x2="0" y2="17"/>
+        <line x1="-14.7" y1="-8.5" x2="14.7" y2="8.5"/>
+        <line x1="-14.7" y1="8.5" x2="14.7" y2="-8.5"/>
+        <circle cx="0" cy="0" r="3.5" fill="#FFFFFF"/>
       </g>
-      <!-- Snowflake 3 -->
-      <g transform="translate(426, 172) scale(0.9)">
-        <line x1="0" y1="-12" x2="0" y2="12"/>
-        <line x1="-10.4" y1="-6" x2="10.4" y2="6"/>
-        <line x1="-10.4" y1="6" x2="10.4" y2="-6"/>
-        <circle cx="0" cy="0" r="2.5" fill="#FFFFFF"/>
+
+      <!-- Snowflake 3 (Right) -->
+      <g transform="translate(832, 326) scale(1.15)">
+        <line x1="0" y1="-17" x2="0" y2="17"/>
+        <line x1="-14.7" y1="-8.5" x2="14.7" y2="8.5"/>
+        <line x1="-14.7" y1="8.5" x2="14.7" y2="-8.5"/>
+        <circle cx="0" cy="0" r="3.5" fill="#FFFFFF"/>
       </g>
-      <!-- Row 2 -->
-      <!-- Snowflake 4 -->
-      <g transform="translate(340, 202) scale(0.85)">
-        <line x1="0" y1="-12" x2="0" y2="12"/>
-        <line x1="-10.4" y1="-6" x2="10.4" y2="6"/>
-        <line x1="-10.4" y1="6" x2="10.4" y2="-6"/>
-        <circle cx="0" cy="0" r="2.5" fill="#FFFFFF"/>
+
+      <!-- Row 2 (Bottom: 3 Snowflakes) -->
+      <!-- Snowflake 4 (Left) -->
+      <g transform="translate(672, 376) scale(1.05)">
+        <line x1="0" y1="-17" x2="0" y2="17"/>
+        <line x1="-14.7" y1="-8.5" x2="14.7" y2="8.5"/>
+        <line x1="-14.7" y1="8.5" x2="14.7" y2="-8.5"/>
+        <circle cx="0" cy="0" r="3.5" fill="#FFFFFF"/>
       </g>
-      <!-- Snowflake 5 -->
-      <g transform="translate(376, 200) scale(0.85)">
-        <line x1="0" y1="-12" x2="0" y2="12"/>
-        <line x1="-10.4" y1="-6" x2="10.4" y2="6"/>
-        <line x1="-10.4" y1="6" x2="10.4" y2="-6"/>
-        <circle cx="0" cy="0" r="2.5" fill="#FFFFFF"/>
+
+      <!-- Snowflake 5 (Center) -->
+      <g transform="translate(738, 372) scale(1.05)">
+        <line x1="0" y1="-17" x2="0" y2="17"/>
+        <line x1="-14.7" y1="-8.5" x2="14.7" y2="8.5"/>
+        <line x1="-14.7" y1="8.5" x2="14.7" y2="-8.5"/>
+        <circle cx="0" cy="0" r="3.5" fill="#FFFFFF"/>
       </g>
-      <!-- Snowflake 6 -->
-      <g transform="translate(412, 202) scale(0.85)">
-        <line x1="0" y1="-12" x2="0" y2="12"/>
-        <line x1="-10.4" y1="-6" x2="10.4" y2="6"/>
-        <line x1="-10.4" y1="6" x2="10.4" y2="-6"/>
-        <circle cx="0" cy="0" r="2.5" fill="#FFFFFF"/>
+
+      <!-- Snowflake 6 (Right) -->
+      <g transform="translate(806, 376) scale(1.05)">
+        <line x1="0" y1="-17" x2="0" y2="17"/>
+        <line x1="-14.7" y1="-8.5" x2="14.7" y2="8.5"/>
+        <line x1="-14.7" y1="8.5" x2="14.7" y2="-8.5"/>
+        <circle cx="0" cy="0" r="3.5" fill="#FFFFFF"/>
       </g>
     </g>
   </g>
@@ -173,82 +208,88 @@
   <!-- ======================================================== -->
   <!-- 3. CANADIAN MAPLE LEAF (Bottom Right)                    -->
   <!-- ======================================================== -->
-  <g filter="url(#elementShadow)">
-    <!-- Maple Leaf Silhouette with 11 Iconic Points -->
-    <path d="M 360 236
-             L 373 286 L 398 274 L 388 304 L 434 316 L 485 368 L 442 380 L 452 414 L 395 396 L 368 438
-             L 366 490 L 354 490 L 352 438 L 325 396 L 268 414 L 278 380 L 235 368 L 286 316 L 276 304 L 266 274 L 291 286 L 304 236
-             L 332 290 Z"
-          fill="url(#mapleRed)"
-          stroke="#FF5765"
-          stroke-width="3"
+  <g filter="url(#leafBevel)">
+    <!-- 11-Point Canadian Maple Leaf Silhouette with 3D Bevel -->
+    <path d="M 705 442
+             L 730 542 L 778 518 L 760 578 L 848 602 L 948 704 L 864 728 L 884 794 L 772 760 L 720 842
+             L 716 950 L 694 950 L 690 842 L 638 760 L 526 794 L 546 728 L 462 704 L 562 602 L 544 578 L 526 518 L 574 542 L 599 442
+             L 652 548 Z"
+          fill="url(#mapleRedGrad)"
+          stroke="#FF4757"
+          stroke-width="6"
           stroke-linejoin="round"/>
-          
-    <!-- Maple Leaf 3D Center Ridges / Highlights -->
-    <path d="M 360 240 L 360 435 M 360 360 L 460 370 M 360 360 L 260 370 M 360 330 L 400 280 M 360 330 L 320 280"
-          fill="none"
-          stroke="#FF8A95"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          opacity="0.6"/>
+
+    <!-- Maple Leaf 3D Raised Vein Ridges & Specular Highlights -->
+    <g stroke="#FFA3AC" stroke-width="4.5" stroke-linecap="round" fill="none" opacity="0.65">
+      <!-- Main Central Spine -->
+      <line x1="705" y1="450" x2="705" y2="838"/>
+      <!-- Right Main Vein -->
+      <line x1="705" y1="690" x2="900" y2="708"/>
+      <!-- Left Main Vein -->
+      <line x1="705" y1="690" x2="510" y2="708"/>
+      <!-- Upper Right Diagonal Vein -->
+      <line x1="705" y1="630" x2="784" y2="532"/>
+      <!-- Upper Left Diagonal Vein -->
+      <line x1="705" y1="630" x2="626" y2="532"/>
+    </g>
   </g>
 
   <!-- ======================================================== -->
   <!-- 4. GOLDEN WHEAT STALKS (Bottom Left)                     -->
   <!-- ======================================================== -->
-  <g filter="url(#elementShadow)" transform="translate(40, 310) rotate(-12)">
-    <!-- Wheat Stalk 1 (Upper/Longer) -->
+  <g filter="url(#elementShadow)" transform="translate(85, 620) rotate(-16)">
+    <!-- Wheat Stalk 1 (Longer Upper Stalk) -->
     <g transform="translate(0, 0)">
       <!-- Central stem -->
-      <path d="M 20 85 Q 70 50 145 10" fill="none" stroke="#D5A440" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 40 170 Q 140 100 290 20" fill="none" stroke="#DCA842" stroke-width="6" stroke-linecap="round"/>
       
-      <!-- Wheat Grains (Awns/Spikelets) -->
-      <!-- Pair 1 -->
-      <path d="M 45 68 C 40 60, 48 52, 58 56 C 54 66, 48 70, 45 68 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.8"/>
-      <path d="M 52 74 C 54 64, 64 62, 68 70 C 62 76, 54 78, 52 74 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.8"/>
-      <line x1="45" y1="60" x2="35" y2="45" stroke="#E5BE6C" stroke-width="1.2"/>
+      <!-- Wheat Grains with Awns/Beards -->
+      <!-- Grains Pair 1 -->
+      <path d="M 90 136 C 80 120, 96 104, 116 112 C 108 132, 96 140, 90 136 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.6"/>
+      <path d="M 104 148 C 108 128, 128 124, 136 140 C 124 152, 108 156, 104 148 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.6"/>
+      <line x1="90" y1="120" x2="70" y2="90" stroke="#FCE297" stroke-width="2.5"/>
       
-      <!-- Pair 2 -->
-      <path d="M 68 52 C 63 44, 71 36, 81 40 C 77 50, 71 54, 68 52 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.8"/>
-      <path d="M 75 58 C 77 48, 87 46, 91 54 C 85 60, 77 62, 75 58 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.8"/>
-      <line x1="68" y1="44" x2="58" y2="28" stroke="#E5BE6C" stroke-width="1.2"/>
+      <!-- Grains Pair 2 -->
+      <path d="M 136 104 C 126 88, 142 72, 162 80 C 154 100, 142 108, 136 104 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.6"/>
+      <path d="M 150 116 C 154 96, 174 92, 182 108 C 170 120, 154 124, 150 116 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.6"/>
+      <line x1="136" y1="88" x2="116" y2="56" stroke="#FCE297" stroke-width="2.5"/>
 
-      <!-- Pair 3 -->
-      <path d="M 91 36 C 86 28, 94 20, 104 24 C 100 34, 94 38, 91 36 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.8"/>
-      <path d="M 98 42 C 100 32, 110 30, 114 38 C 108 44, 100 46, 98 42 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.8"/>
-      <line x1="91" y1="28" x2="81" y2="12" stroke="#E5BE6C" stroke-width="1.2"/>
+      <!-- Grains Pair 3 -->
+      <path d="M 182 72 C 172 56, 188 40, 208 48 C 200 68, 188 76, 182 72 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.6"/>
+      <path d="M 196 84 C 200 64, 220 60, 228 76 C 216 88, 200 92, 196 84 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.6"/>
+      <line x1="182" y1="56" x2="162" y2="24" stroke="#FCE297" stroke-width="2.5"/>
 
-      <!-- Pair 4 (Tip) -->
-      <path d="M 114 20 C 109 12, 117 4, 127 8 C 123 18, 117 22, 114 20 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.8"/>
-      <path d="M 121 26 C 123 16, 133 14, 137 22 C 131 28, 123 30, 121 26 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.8"/>
-      <path d="M 136 10 C 138 2, 148 4, 146 12 C 142 16, 136 14, 136 10 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.8"/>
-      <line x1="114" y1="12" x2="105" y2="-2" stroke="#E5BE6C" stroke-width="1.2"/>
-      <line x1="136" y1="5" x2="142" y2="-12" stroke="#E5BE6C" stroke-width="1.2"/>
+      <!-- Grains Tip -->
+      <path d="M 228 40 C 218 24, 234 8, 254 16 C 246 36, 234 44, 228 40 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.6"/>
+      <path d="M 242 52 C 246 32, 266 28, 274 44 C 262 56, 246 60, 242 52 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.6"/>
+      <path d="M 272 20 C 276 4, 296 8, 292 24 C 284 32, 272 28, 272 20 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.6"/>
+      <line x1="228" y1="24" x2="210" y2="-4" stroke="#FCE297" stroke-width="2.5"/>
+      <line x1="272" y1="10" x2="284" y2="-24" stroke="#FCE297" stroke-width="2.5"/>
     </g>
 
-    <!-- Wheat Stalk 2 (Lower) -->
-    <g transform="translate(18, 26)">
+    <!-- Wheat Stalk 2 (Lower Stalk) -->
+    <g transform="translate(36, 52)">
       <!-- Central stem -->
-      <path d="M 15 75 Q 60 45 130 10" fill="none" stroke="#D5A440" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M 30 150 Q 120 90 260 20" fill="none" stroke="#DCA842" stroke-width="5" stroke-linecap="round"/>
       
       <!-- Wheat Grains -->
-      <path d="M 38 60 C 33 52, 41 44, 51 48 C 47 58, 41 62, 38 60 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.7"/>
-      <path d="M 45 66 C 47 56, 57 54, 61 62 C 55 68, 47 70, 45 66 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.7"/>
+      <path d="M 76 120 C 66 104, 82 88, 102 96 C 94 116, 82 124, 76 120 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.4"/>
+      <path d="M 90 132 C 94 112, 114 108, 122 124 C 110 136, 94 140, 90 132 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.4"/>
       
-      <path d="M 60 44 C 55 36, 63 28, 73 32 C 69 42, 63 46, 60 44 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.7"/>
-      <path d="M 67 50 C 69 40, 79 38, 83 46 C 77 52, 69 54, 67 50 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.7"/>
+      <path d="M 120 88 C 110 72, 126 56, 146 64 C 138 84, 126 92, 120 88 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.4"/>
+      <path d="M 134 100 C 138 80, 158 76, 166 92 C 154 104, 138 108, 134 100 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.4"/>
 
-      <path d="M 82 28 C 77 20, 85 12, 95 16 C 91 26, 85 30, 82 28 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.7"/>
-      <path d="M 89 34 C 91 24, 101 22, 105 30 C 99 36, 91 38, 89 34 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.7"/>
+      <path d="M 164 56 C 154 40, 170 24, 190 32 C 182 52, 170 60, 164 56 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.4"/>
+      <path d="M 178 68 C 182 48, 202 44, 210 60 C 198 72, 182 76, 178 68 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.4"/>
 
-      <path d="M 104 12 C 99 4, 107 -4, 117 0 C 113 10, 107 14, 104 12 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.7"/>
-      <path d="M 120 4 C 122 -4, 130 -2, 128 6 C 124 10, 120 8, 120 4 Z" fill="url(#wheatGold)" stroke="#6B4800" stroke-width="0.7"/>
-      <line x1="82" y1="20" x2="72" y2="6" stroke="#E5BE6C" stroke-width="1.2"/>
-      <line x1="120" y1="0" x2="128" y2="-12" stroke="#E5BE6C" stroke-width="1.2"/>
+      <path d="M 208 24 C 198 8, 214 -8, 234 0 C 226 20, 214 28, 208 24 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.4"/>
+      <path d="M 240 8 C 244 -8, 260 -4, 256 12 C 248 20, 240 16, 240 8 Z" fill="url(#wheatGold)" stroke="#694600" stroke-width="1.4"/>
+      <line x1="164" y1="40" x2="144" y2="12" stroke="#FCE297" stroke-width="2.5"/>
+      <line x1="240" y1="0" x2="256" y2="-24" stroke="#FCE297" stroke-width="2.5"/>
     </g>
 
-    <!-- Green Leaf Sheaths at Base -->
-    <path d="M 15 105 C 30 85, 60 70, 75 95 C 50 110, 25 120, 15 105 Z" fill="url(#wheatGreen)" stroke="#1E6B34" stroke-width="1"/>
-    <path d="M 10 115 C 22 90, 45 78, 55 105 C 35 125, 20 128, 10 115 Z" fill="url(#wheatGreen)" stroke="#1E6B34" stroke-width="1"/>
+    <!-- Green Leaf Sheaths Wrapping the Base -->
+    <path d="M 30 210 C 60 170, 120 140, 150 190 C 100 220, 50 240, 30 210 Z" fill="url(#wheatGreen)" stroke="#1B6932" stroke-width="2"/>
+    <path d="M 20 230 C 44 180, 90 156, 110 210 C 70 250, 40 256, 20 230 Z" fill="url(#wheatGreen)" stroke="#1B6932" stroke-width="2"/>
   </g>
 </svg>

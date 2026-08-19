@@ -1,5 +1,5 @@
 /**
- * French Kiu — Vocabulary Flashcard PWA
+ * French Vira — Vocabulary Flashcard PWA
  * Mobile-first French vocabulary learning with audio pronunciation and Punjabi translations
  * Styled in Khalsa Colors (Kesari #FF9933, Yellow #FFD700, Khalsa Navy #002270)
  */
@@ -14,7 +14,6 @@ import { CategoryChips } from './components/CategoryChips';
 import { Flashcard } from './components/Flashcard';
 import { ReelFeed } from './components/ReelFeed';
 import { Header } from './components/Header';
-import { AnalyticsModal } from './components/AnalyticsModal';
 import { NetworkStatusBanner } from './components/NetworkStatusBanner';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { speakFrench, stopSpeaking } from './utils/speech';
@@ -91,7 +90,6 @@ export default function App() {
   });
   const [showSavedOnly, setShowSavedOnly] = useState<boolean>(false);
   const [showControls, setShowControls] = useState<boolean>(true);
-  const [showAnalyticsModal, setShowAnalyticsModal] = useState<boolean>(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize Analytics & Record User Session
@@ -128,7 +126,6 @@ export default function App() {
     setShowControls((prev) => {
       const next = !prev;
       if (next) {
-        // Give 12 seconds of open interaction time
         resetControlsTimeout(12000);
       }
       return next;
@@ -138,161 +135,139 @@ export default function App() {
   // Toggle Save / Bookmark for any word
   const handleToggleSaveWord = useCallback((id: string) => {
     setSavedWordsMap((prev) => {
-      const isSaving = !prev[id];
-      const next = { ...prev, [id]: isSaving };
-      if (!next[id]) {
+      const isCurrentlySaved = Boolean(prev[id]);
+      const next = { ...prev };
+      if (isCurrentlySaved) {
         delete next[id];
+      } else {
+        next[id] = true;
       }
       try {
         localStorage.setItem('french_kiu_saved_words', JSON.stringify(next));
       } catch {
         // ignore
       }
-      trackEvent('word_saved', { wordId: id, action: isSaving ? 'save' : 'unsave' });
+      trackEvent(isCurrentlySaved ? 'word_unbookmarked' : 'word_bookmarked', { word_id: id });
       return next;
     });
   }, []);
 
+  // Get words based on level, category, and saved-filter
+  const getDisplayWords = useCallback(() => {
+    if (showSavedOnly) {
+      return VOCABULARY_DATA.filter((w) => Boolean(savedWordsMap[w.id]));
+    }
+    return getFilteredWords(selectedLevel, selectedCategory);
+  }, [selectedLevel, selectedCategory, showSavedOnly, savedWordsMap]);
+
+  const words = getDisplayWords();
+  const availableCategories = getAvailableCategoriesForLevel(selectedLevel);
   const savedCount = Object.keys(savedWordsMap).length;
 
-  // Available categories for the currently selected level (hides empty categories)
-  const availableCategories = getAvailableCategoriesForLevel(selectedLevel);
+  // Keep currentIndex bounded to valid range
+  const safeIndex = words.length === 0 ? 0 : Math.min(currentIndex, Math.max(0, words.length - 1));
+  const currentCard = words[safeIndex] as VocabularyWord | undefined;
+  const nextCard = safeIndex + 1 < words.length ? words[safeIndex + 1] : undefined;
 
-  // Get filtered deck of words based on level & category or saved filter
-  const words: VocabularyWord[] = showSavedOnly
-    ? VOCABULARY_DATA.filter((w) => Boolean(savedWordsMap[w.id]))
-    : getFilteredWords(selectedLevel, selectedCategory);
-  
-  // Safe bounds checking
-  const safeIndex = Math.min(Math.max(0, currentIndex), Math.max(0, words.length - 1));
-  const currentCard: VocabularyWord | undefined = words[safeIndex];
-  const nextCard: VocabularyWord | undefined = words[safeIndex + 1];
+  // Change Level
+  const handleSelectLevel = (level: CEFRLevel) => {
+    if (level === selectedLevel && !showSavedOnly) return;
+    stopSpeaking();
+    setSelectedLevel(level);
+    setSelectedCategory('all');
+    setShowSavedOnly(false);
+    setCurrentIndex(0);
+    resetControlsTimeout(10000);
+    trackEvent('level_changed', { level });
+  };
 
-  // Toggle showSavedOnly filter
+  // Change Category
+  const handleSelectCategory = (category: WordCategory) => {
+    if (category === selectedCategory && !showSavedOnly) return;
+    stopSpeaking();
+    setSelectedCategory(category);
+    setShowSavedOnly(false);
+    setCurrentIndex(0);
+    resetControlsTimeout(10000);
+    trackEvent('category_changed', { category });
+  };
+
+  // Switch between Reels mode and Flashcard Deck mode
+  const handleModeChange = (newMode: AppMode) => {
+    if (newMode === mode) return;
+    stopSpeaking();
+    setMode(newMode);
+    try {
+      localStorage.setItem('french_kiu_mode', newMode);
+    } catch {
+      // ignore
+    }
+    resetControlsTimeout(10000);
+    trackEvent('mode_switched', { mode: newMode });
+  };
+
+  // Toggle show only saved words
   const handleToggleShowSaved = () => {
     stopSpeaking();
-    setShowSavedOnly((prev) => {
-      const next = !prev;
-      trackEvent('toggle_saved_filter', { showSaved: next });
-      return next;
-    });
+    setShowSavedOnly((prev) => !prev);
     setCurrentIndex(0);
+    resetControlsTimeout(10000);
   };
 
   const handleClearSavedFilter = () => {
     stopSpeaking();
     setShowSavedOnly(false);
     setCurrentIndex(0);
+    resetControlsTimeout(10000);
   };
 
-  // Level selector handler - resets deck and safely updates category
-  const handleSelectLevel = (level: CEFRLevel) => {
+  // Flashcard Deck Swipe Handler
+  const handleSwipe = (direction: 'left' | 'right') => {
     stopSpeaking();
-    resetControlsTimeout(8000);
-    setShowSavedOnly(false);
-    setSelectedLevel(level);
-    trackEvent('level_selected', { level });
-    const newAvailable = getAvailableCategoriesForLevel(level);
-    if (selectedCategory !== 'all' && !newAvailable.includes(selectedCategory)) {
-      setSelectedCategory('all');
+    if (safeIndex < words.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+      trackEvent('card_swipe', {
+        direction,
+        word_id: currentCard?.id || '',
+        level: selectedLevel,
+      });
+    } else {
+      // Completed level
+      setCurrentIndex(words.length);
+      trackEvent('level_completed', { level: selectedLevel });
     }
-    setCurrentIndex(0);
   };
 
-  // Category selector handler
-  const handleSelectCategory = (cat: WordCategory) => {
+  // Advance to Next Level (after finishing all words in current level)
+  const handleNextLevel = () => {
     stopSpeaking();
-    resetControlsTimeout(8000);
-    setShowSavedOnly(false);
-    setSelectedCategory(cat);
-    trackEvent('category_selected', { category: cat, level: selectedLevel });
-    setCurrentIndex(0);
-  };
-
-  // Endless Level Progression: Advance to next CEFR level (loops C2 -> A1)
-  const handleNextLevel = useCallback(() => {
     triggerHaptic('success');
-    stopSpeaking();
-    setShowSavedOnly(false);
     const nextLvl = getNextLevel(selectedLevel);
     setSelectedLevel(nextLvl);
     setSelectedCategory('all');
+    setShowSavedOnly(false);
     setCurrentIndex(0);
-    trackEvent('level_advanced', { fromLevel: selectedLevel, toLevel: nextLvl });
-  }, [selectedLevel]);
-
-  // Mode Switcher (Deck <-> Reels) preserving the exact same word position
-  const handleModeChange = (newMode: AppMode) => {
-    stopSpeaking();
-    setMode(newMode);
-    trackEvent('mode_changed', { mode: newMode });
-    try {
-      localStorage.setItem('french_kiu_mode', newMode);
-    } catch {
-      // ignore
-    }
+    resetControlsTimeout(12000);
+    trackEvent('level_promoted', { next_level: nextLvl });
   };
 
-  // Flashcard Swipe Navigation with Endless Continuous Looping
-  const handleSwipe = useCallback(
-    (direction: 'left' | 'right') => {
-      stopSpeaking();
-      trackEvent('card_swipe', {
-        direction,
-        level: selectedLevel,
-        word: currentCard?.word || '',
-      });
-      setCurrentIndex((prev) => {
-        const next = prev + 1;
-        if (next >= words.length) {
-          if (!showSavedOnly) {
-            handleNextLevel();
-          }
-          return 0;
-        }
-        return next;
-      });
-    },
-    [words.length, handleNextLevel, showSavedOnly, selectedLevel, currentCard]
-  );
-
-  // Restart current level
+  // Restart Current Level
   const handleRestartLevel = () => {
-    triggerHaptic('selection');
     stopSpeaking();
+    triggerHaptic('medium');
     setCurrentIndex(0);
+    resetControlsTimeout(10000);
+    trackEvent('level_restarted', { level: selectedLevel });
   };
-
-  // Keyboard navigation for desktop users
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (mode === 'flashcards') {
-        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-          e.preventDefault();
-          if (currentIndex < words.length) {
-            handleSwipe(e.key === 'ArrowRight' ? 'right' : 'left');
-          }
-        } else if (e.key === 'r' || e.key === 'R' || e.key === 'ArrowUp') {
-          e.preventDefault();
-          if (currentCard) {
-            speakFrench(currentCard.word);
-          }
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, currentIndex, words.length, currentCard, handleSwipe]);
 
   return (
-    <div className="h-[100dvh] w-screen bg-[#001438] text-white flex flex-col justify-between overflow-hidden selection:bg-[#FF9933] selection:text-white relative">
-      {/* Network Connectivity & PWA Background Update Toast Banner */}
+    <div className="relative w-full h-[100dvh] max-h-screen bg-[#002270] text-slate-100 flex flex-col justify-between overflow-hidden select-none font-sans">
+      {/* Network Status Banner */}
       <NetworkStatusBanner networkStatus={networkStatus} />
 
-      {/* Top Header & Sticky Navigation (Compact, Zero-Wasted Space) */}
-      <div 
-        className="w-full shrink-0 z-30 flex flex-col"
+      {/* Auto-Hideable Top Bar & Controls Container (Responsive Sizing) */}
+      <div
+        className="w-full shrink-0 z-40 bg-[#002270] shadow-md border-b border-[#0033A0]/60 transition-all duration-300"
         onMouseEnter={() => {
           if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
         }}
@@ -317,10 +292,6 @@ export default function App() {
           onToggleShowSaved={handleToggleShowSaved}
           showControls={showControls}
           onToggleControls={handleToggleControls}
-          onOpenAnalytics={() => {
-            stopSpeaking();
-            setShowAnalyticsModal(true);
-          }}
         />
         <AnimatePresence initial={false}>
           {!showSavedOnly && showControls && (
@@ -345,15 +316,15 @@ export default function App() {
           )}
         </AnimatePresence>
         {showSavedOnly && (
-          <div className="w-full max-w-md mx-auto px-3 py-1.5 flex items-center justify-between bg-[#001438] border-b border-[#0033A0]">
-            <span className="text-xs font-black text-[#FFD700] flex items-center gap-1.5 font-gurmukhi">
-              <Bookmark className="w-3.5 h-3.5 fill-[#FFD700]" />
+          <div className="w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto px-3 sm:px-4 py-1.5 flex items-center justify-between bg-[#001438] border-b border-[#0033A0]">
+            <span className="text-xs sm:text-sm font-black text-[#FFD700] flex items-center gap-1.5 font-gurmukhi">
+              <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-[#FFD700]" />
               ਤੁਹਾਡੇ ਸੇਵ ਕੀਤੇ ਸ਼ਬਦ ({savedCount})
             </span>
             <button
               type="button"
               onClick={handleClearSavedFilter}
-              className="text-[11px] font-bold text-[#FF9933] hover:underline"
+              className="text-[11px] sm:text-xs font-bold text-[#FF9933] hover:underline"
             >
               ਸਾਰੇ ਸ਼ਬਦ ਦੇਖੋ ✕
             </button>
@@ -361,7 +332,7 @@ export default function App() {
         )}
       </div>
 
-      {/* Main Content Stage: Flashcard Deck OR Reels Feed (Fluidly Auto-Resizing) */}
+      {/* Main Content Stage: Flashcard Deck OR Reels Feed (Fluidly Resizing to any screen size) */}
       <main className="flex-1 min-h-0 w-full relative overflow-hidden flex flex-col justify-center items-center">
         {mode === 'reels' ? (
           /* ================= LAYOUT 2: INSTAGRAM REEL FEED ================= */
@@ -382,10 +353,10 @@ export default function App() {
           />
         ) : (
           /* ================= LAYOUT 1: KINDLE FLASHCARD DECK ================= */
-          <div className="w-full h-full flex flex-col items-center justify-center p-2.5 sm:p-4 max-w-md mx-auto my-auto">
+          <div className="w-full h-full flex flex-col items-center justify-center p-2 sm:p-4 max-w-md sm:max-w-lg md:max-w-xl mx-auto my-auto">
             {words.length === 0 ? (
               /* Empty state in Deck mode */
-              <div className="w-full max-w-[365px] sm:max-w-[390px] min-h-[380px] rounded-3xl bg-white text-[#002270] border-2 border-[#FFD700] shadow-lg p-6 flex flex-col items-center justify-center text-center mx-auto">
+              <div className="w-full max-w-[360px] sm:max-w-[420px] md:max-w-[460px] min-h-[340px] max-h-[540px] rounded-3xl bg-white text-[#002270] border-2 border-[#FFD700] shadow-lg p-6 flex flex-col items-center justify-center text-center mx-auto">
                 <div className="w-14 h-14 rounded-full bg-[#FF9933]/15 border-2 border-[#FFD700] flex items-center justify-center mb-3">
                   <Bookmark className="w-7 h-7 text-[#FF9933] stroke-[2.5]" />
                 </div>
@@ -398,7 +369,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleClearSavedFilter}
-                  className="px-4 py-2 rounded-xl bg-[#FF9933] text-[#00174D] font-black text-xs hover:bg-[#FFD700] transition-colors border border-[#FFD700] active:scale-95 shadow"
+                  className="px-4 py-2 rounded-xl bg-[#FF9933] text-[#00174D] font-black text-xs sm:text-sm hover:bg-[#FFD700] transition-colors border border-[#FFD700] active:scale-95 shadow"
                 >
                   ਸਾਰੇ ਸ਼ਬਦ ਦੇਖੋ (Browse All)
                 </button>
@@ -422,7 +393,7 @@ export default function App() {
                     initial={{ scale: 0.92, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.92, opacity: 0 }}
-                    className="w-full max-w-[365px] sm:max-w-[390px] min-h-[380px] rounded-3xl bg-white text-[#002270] border-2 border-[#FFD700] shadow-lg p-6 flex flex-col items-center justify-between text-center mx-auto"
+                    className="w-full max-w-[360px] sm:max-w-[420px] md:max-w-[460px] min-h-[340px] max-h-[560px] rounded-3xl bg-white text-[#002270] border-2 border-[#FFD700] shadow-lg p-6 flex flex-col items-center justify-between text-center mx-auto overflow-y-auto"
                   >
                     <div className="w-full flex items-center justify-center pt-2">
                       <div className="w-13 h-13 rounded-full bg-[#FF9933]/15 border-2 border-[#FFD700] flex items-center justify-center">
@@ -431,16 +402,16 @@ export default function App() {
                     </div>
 
                     <div className="my-auto py-3">
-                      <span className="text-xs font-black text-[#FF9933] uppercase tracking-widest block mb-1">
+                      <span className="text-xs sm:text-sm font-black text-[#FF9933] uppercase tracking-widest block mb-1">
                         {selectedLevel} · {LEVEL_METADATA[selectedLevel].punjabiTitle}
                       </span>
-                      <h2 className="text-2xl font-black text-[#002270] font-brand mb-1 leading-tight">
+                      <h2 className="text-2xl sm:text-3xl font-black text-[#002270] font-brand mb-1 leading-tight">
                         ਸ਼ਾਬਾਸ਼! Bravo !
                       </h2>
-                      <p className="text-sm font-bold text-[#FF9933] font-gurmukhi mb-2">
+                      <p className="text-sm sm:text-base font-bold text-[#FF9933] font-gurmukhi mb-2">
                         ਤੁਸੀਂ ਇਸ ਪੱਧਰ ਦੇ ਸਾਰੇ ਸ਼ਬਦ ਪੂਰੇ ਕਰ ਲਏ ਹਨ।
                       </p>
-                      <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-500 max-w-xs mx-auto leading-relaxed">
                         You completed all {words.length} words in this section.
                       </p>
                     </div>
@@ -476,18 +447,10 @@ export default function App() {
 
       {/* Bottom Swipe hint in Deck Mode */}
       {mode === 'flashcards' && words.length > 0 && (
-        <footer className="w-full py-1.5 text-center text-[10px] sm:text-[11px] font-medium text-[#88B0FF]/70 flex items-center justify-center gap-2 shrink-0">
+        <footer className="w-full py-1 text-center text-[10px] sm:text-[11px] font-medium text-[#88B0FF]/70 flex items-center justify-center gap-2 shrink-0">
           <span>← ਅਗਲਾ ਸ਼ਬਦ ਦੇਖਣ ਲਈ ਸਵਾਈਪ ਕਰੋ (Swipe card) →</span>
         </footer>
       )}
-
-      {/* Live Free Tier Analytics & Stats Modal */}
-      <AnalyticsModal
-        isOpen={showAnalyticsModal}
-        onClose={() => setShowAnalyticsModal(false)}
-      />
     </div>
   );
 }
-
-
